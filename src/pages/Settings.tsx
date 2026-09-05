@@ -1,19 +1,22 @@
 import { useRef, useState } from 'react'
 import { useStore } from '../lib/store'
 import { Card, ConfirmButton, Field, PageHead } from '../components/ui'
-import { attendanceCSV, download, invoicesCSV } from '../lib/exporters'
-import { exportJSON, listBackups, parseImport, restoreBackup } from '../lib/repo'
+import { SyncPanel, SecurityPanel } from '../components/SyncPanel'
+import { SheetSettings } from './SignSheet'
+import { useVault } from '../lib/vault'
+import { attendanceCSV, download, invoicesCSV, readableHTML } from '../lib/exporters'
+import { exportJSON, parseImport } from '../lib/repo'
 import { buildDemoDatabase } from '../lib/demo'
 import { formatDate, today } from '../lib/dates'
 import type { RoundingMode } from '../types'
 
 export default function SettingsPage() {
   const { db, actions } = useStore()
+  const vault = useVault()
   const s = db.settings
   const fileRef = useRef<HTMLInputElement>(null)
   const [closure, setClosure] = useState({ date: today(), name: '', billable: false })
   const [message, setMessage] = useState('')
-  const backups = listBackups()
 
   const set = (patch: Parameters<typeof actions.updateSettings>[0]) => actions.updateSettings(patch)
 
@@ -185,10 +188,15 @@ export default function SettingsPage() {
         </Card>
       </div>
 
-      <Card title="Data">
+      <SheetSettings />
+
+      <SyncPanel />
+      <SecurityPanel />
+
+      <Card title="Backups and data">
         <p className="muted">
-          Everything lives in this browser, on this device. Nothing is sent anywhere. Export a
-          backup regularly — clearing site data wipes it.
+          Sync keeps a copy on GitHub, encrypted. An exported JSON file is plaintext, so
+          treat it as a file containing children's personal details.
         </p>
 
         <div className="row gap wrap">
@@ -211,22 +219,11 @@ export default function SettingsPage() {
           <button className="btn" onClick={() => download('invoices.csv', invoicesCSV(db), 'text/csv')}>
             Invoices CSV
           </button>
+          <button className="btn" onClick={() =>
+            download(`childcare-record-${today()}.html`, readableHTML(db), 'text/html')}>
+            Readable export (HTML)
+          </button>
         </div>
-
-        {backups.length > 0 && (
-          <div className="row gap wrap backups">
-            <span className="muted small">Automatic daily snapshots:</span>
-            {backups.map(b => (
-              <button key={b} className="btn small" onClick={() => {
-                const restored = restoreBackup(b)
-                if (restored) {
-                  actions.replaceDatabase(restored)
-                  setMessage(`Restored the snapshot from ${b}.`)
-                }
-              }}>{b}</button>
-            ))}
-          </div>
-        )}
 
         <div className="danger-row">
           <ConfirmButton
@@ -241,23 +238,16 @@ export default function SettingsPage() {
           </ConfirmButton>
 
           <ConfirmButton
-            confirmLabel="Erase everything?"
-            onConfirm={() => {
-              actions.resetDatabase()
-              setMessage('All data cleared.')
-            }}
+            confirmLabel="Erase this vault and all local data?"
+            onConfirm={() => vault.destroy()}
           >
-            Start fresh
+            Destroy vault
           </ConfirmButton>
+          <span className="muted small">
+            Destroying clears this device only. Anything already pushed to GitHub stays there
+            until you delete the repository.
+          </span>
         </div>
-      </Card>
-
-      <Card title="Sign-in">
-        <p className="muted">
-          There is no login yet — anyone who opens this browser profile can see the data. The
-          wiring is stubbed in <code>src/lib/auth.tsx</code>; adding real accounts also means
-          moving storage off the device, since a browser-side password check protects nothing.
-        </p>
       </Card>
     </>
   )

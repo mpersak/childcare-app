@@ -6,6 +6,7 @@ import { amountDue, amountPaid, statusLabel } from '../lib/invoicing'
 import { formatMoney, parseMoney } from '../lib/money'
 import { formatDate, formatHours, today } from '../lib/dates'
 import { uid } from '../lib/defaults'
+import { openDraft, trimBody } from '../lib/email'
 import type { InvoiceStatus } from '../types'
 
 const STATUSES: InvoiceStatus[] = ['draft', 'sent', 'paid', 'void']
@@ -44,6 +45,28 @@ export default function InvoiceDetail() {
           <>
             <Link className="btn" to="/invoices">All invoices</Link>
             <button className="btn" onClick={() => window.print()}>Print / PDF</button>
+            <button
+              className="btn primary"
+              disabled={!payer?.email}
+              title={payer?.email ? `Email ${payer.email}` : 'No email on the bill payer'}
+              onClick={() => openDraft({
+                to: payer!.email,
+                subject: `Invoice ${inv.number} — ${childName(child)}`,
+                body: trimBody(
+                  `Hi ${payer!.name || ''},\n\n` +
+                  `Invoice ${inv.number} for ${childName(child)}, ` +
+                  `${formatDate(inv.periodStart, locale)} to ${formatDate(inv.periodEnd, locale)}.\n\n` +
+                  `Total ${formatMoney(inv.total, currency, locale)}` +
+                  (due !== inv.total ? `, balance due ${formatMoney(due, currency, locale)}` : '') +
+                  `\nDue ${formatDate(inv.dueDate, locale)}.\n\n` +
+                  (db.settings.bankAccount
+                    ? `Payment to ${db.settings.bankAccount}, reference ${inv.number}.\n\n` : '') +
+                  `${db.settings.businessName}\n`,
+                ),
+              }, db.settings)}
+            >
+              Email
+            </button>
           </>
         }
       />

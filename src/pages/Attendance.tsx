@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useStore, childName } from '../lib/store'
+import { useVault } from '../lib/vault'
 import { Avatar, Badge, Card, PageHead } from '../components/ui'
 import { calcBilling, scheduleFor } from '../lib/billing'
 import { formatMoney } from '../lib/money'
@@ -205,14 +206,27 @@ export default function Attendance() {
   )
 }
 
-/** A guardian signature captured at the door, shown beside the time it set. */
+/**
+ * A guardian signature captured at the door, shown beside the time it set.
+ * The image sits in its own encrypted file, so it is fetched only on demand.
+ */
 function SignatureMark({ sig }: { sig: SignatureRecord | null | undefined }) {
+  const vault = useVault()
+  const [src, setSrc] = useState<string | null>(null)
+  const [asked, setAsked] = useState(false)
+
+  const reveal = () => {
+    if (asked || !sig) return
+    setAsked(true)
+    void vault.loadSignature(sig.ref).then(setSrc)
+  }
+
   if (!sig) return null
   return (
-    <span className="sig-mark" tabIndex={0}
+    <span className="sig-mark" tabIndex={0} onMouseEnter={reveal} onFocus={reveal}
           title={`Signed by ${sig.name} at ${new Date(sig.at).toLocaleString()}`}>
       ✓
-      <img className="sig-pop" src={sig.dataUrl} alt={`Signature of ${sig.name}`} />
+      {src && <img className="sig-pop" src={src} alt={`Signature of ${sig.name}`} />}
     </span>
   )
 }

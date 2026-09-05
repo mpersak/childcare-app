@@ -3,7 +3,6 @@ import type {
   AttendanceRecord, Child, Closure, Database, Invoice, ISODate,
   KidNote, ScheduleBlock, Settings,
 } from '../types'
-import * as repo from './repo'
 import { uid, CHILD_COLOURS } from './defaults'
 import { buildInvoice, invoiceNumberFor, recalcTotals } from './invoicing'
 import { rateForChild, scheduleFor, scheduledMinutes } from './billing'
@@ -28,7 +27,7 @@ interface Actions {
   signChild(
     direction: 'in' | 'out',
     childId: string,
-    sig: { dataUrl: string; name: string },
+    sig: { ref: string; name: string },
     date?: ISODate,
   ): void
   /** Creates records for every child booked on that date. Never touches existing rows. */
@@ -50,23 +49,25 @@ interface Actions {
   deleteClosure(id: string): void
 
   replaceDatabase(next: Database): void
-  resetDatabase(): void
 }
 
 const Ctx = createContext<{ db: Database; actions: Actions } | null>(null)
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [db, setDb] = useState<Database>(() => repo.load())
+export function StoreProvider({ initial, persist, children }: {
+  /** Already-decrypted document handed down by the vault. */
+  initial: Database
+  /** Called with every new document; the vault encrypts and stores it. */
+  persist(db: Database): void
+  children: React.ReactNode
+}) {
+  const [db, setDb] = useState<Database>(initial)
   const first = useRef(true)
 
+  // The vault owns storage. Skip the first pass so opening the app is not a write.
   useEffect(() => {
-    if (first.current) {
-      first.current = false
-      repo.snapshot(db)
-      return
-    }
-    repo.save(db)
-  }, [db])
+    if (first.current) { first.current = false; return }
+    persist(db)
+  }, [db, persist])
 
   const actions = useMemo<Actions>(() => {
     const mutate = (fn: (d: Database) => Database) => setDb(prev => fn(structuredClone(prev)))
@@ -303,10 +304,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       replaceDatabase(next) { setDb(next) },
-      resetDatabase() {
-        repo.clearAll()
-        setDb(repo.load())
-      },
     }
   }, [])
 

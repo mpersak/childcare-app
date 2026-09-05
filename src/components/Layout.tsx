@@ -8,6 +8,7 @@ const NAV = [
   { to: '/signin', label: 'Sign in / out' },
   { to: '/attendance', label: 'Attendance' },
   { to: '/calendar', label: 'Calendar' },
+  { to: '/sheet', label: 'Sign in sheet' },
   { to: '/children', label: 'Children' },
   { to: '/notes', label: 'Notes' },
   { to: '/invoices', label: 'Invoices' },

@@ -92,10 +92,53 @@ export function SignaturePad({ title, subtitle, confirmLabel, onCancel, onConfir
     setHasInk(false)
   }
 
+  /**
+   * Crops to the ink and scales down before export. A raw full-screen canvas is
+   * hundreds of kilobytes; every signature is stored and synced, so this matters.
+   */
+  const flatten = (canvas: HTMLCanvasElement): string => {
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return canvas.toDataURL('image/png')
+    const { width, height } = canvas
+    const { data } = ctx.getImageData(0, 0, width, height)
+
+    let minX = width, minY = height, maxX = -1, maxY = -1
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (data[(y * width + x) * 4 + 3] > 8) {
+          if (x < minX) minX = x
+          if (x > maxX) maxX = x
+          if (y < minY) minY = y
+          if (y > maxY) maxY = y
+        }
+      }
+    }
+    if (maxX < 0) return canvas.toDataURL('image/png')
+
+    const pad = 8
+    minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad)
+    maxX = Math.min(width - 1, maxX + pad); maxY = Math.min(height - 1, maxY + pad)
+    const cropW = maxX - minX + 1
+    const cropH = maxY - minY + 1
+
+    const MAX_W = 420
+    const scale = Math.min(1, MAX_W / cropW)
+    const out = document.createElement('canvas')
+    out.width = Math.max(1, Math.round(cropW * scale))
+    out.height = Math.max(1, Math.round(cropH * scale))
+    const octx = out.getContext('2d')
+    if (!octx) return canvas.toDataURL('image/png')
+    // Flatten onto white so the stroke reads on any background it is shown against.
+    octx.fillStyle = '#ffffff'
+    octx.fillRect(0, 0, out.width, out.height)
+    octx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, out.width, out.height)
+    return out.toDataURL('image/png')
+  }
+
   const confirm = () => {
     const canvas = canvasRef.current
     if (!canvas || !hasInk) return
-    onConfirm({ dataUrl: canvas.toDataURL('image/png'), name: name.trim() })
+    onConfirm({ dataUrl: flatten(canvas), name: name.trim() })
   }
 
   return (

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore, childName, initials } from '../lib/store'
+import { useVault } from '../lib/vault'
 import { PageHead } from '../components/ui'
 import { SignaturePad } from '../components/SignaturePad'
 import { scheduleFor } from '../lib/billing'
@@ -13,6 +14,7 @@ type Pending = { childId: string; direction: 'in' | 'out' } | null
  */
 export default function SignInOut() {
   const { db, actions } = useStore()
+  const vault = useVault()
   const date = today()
   const [pending, setPending] = useState<Pending>(null)
   const [justDone, setJustDone] = useState<string>('')
@@ -39,9 +41,11 @@ export default function SignInOut() {
 
   const pendingChild = db.children.find(c => c.id === pending?.childId)
 
-  const complete = (sig: { dataUrl: string; name: string }) => {
+  const complete = async (sig: { dataUrl: string; name: string }) => {
     if (!pending) return
-    actions.signChild(pending.direction, pending.childId, sig)
+    // The image goes to its own encrypted file; the record keeps only a reference.
+    const ref = await vault.saveSignature(sig.dataUrl)
+    actions.signChild(pending.direction, pending.childId, { ref, name: sig.name })
     setJustDone(`${childName(pendingChild)} signed ${pending.direction === 'in' ? 'in' : 'out'} at ${new Date().toLocaleTimeString(db.settings.locale, { hour: '2-digit', minute: '2-digit' })}.`)
     setPending(null)
     setTimeout(() => setJustDone(''), 5000)
@@ -103,7 +107,7 @@ export default function SignInOut() {
           subtitle="Parent or guardian signature"
           confirmLabel={pending.direction === 'in' ? 'Confirm sign in' : 'Confirm sign out'}
           onCancel={() => setPending(null)}
-          onConfirm={complete}
+          onConfirm={sig => { void complete(sig) }}
         />
       )}
     </>

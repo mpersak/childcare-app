@@ -48,12 +48,15 @@ export interface ScheduleBlock {
 export type AttendanceStatus = 'present' | 'absent' | 'sick' | 'holiday'
 
 /**
- * A parent or guardian signing a child in or out. `dataUrl` is a PNG of the
- * drawn signature; `at` is when it was captured, which is the defensible
- * timestamp — the editable check-in time on the record is not.
+ * A parent or guardian signing a child in or out.
+ *
+ * The image itself lives in its own encrypted file, referenced by `ref`, so the
+ * synced document stays small. `at` is when it was captured, which is the
+ * defensible timestamp — the editable check-in time on the record is not.
  */
 export interface SignatureRecord {
-  dataUrl: string
+  /** Key of the separate encrypted file holding the image. */
+  ref: string
   name: string
   at: ISOTimestamp
   /** The time that was recorded on the attendance row when this was signed. */
@@ -184,6 +187,16 @@ export interface Settings {
 
   openTime: string
   closeTime: string
+
+  /** Named on the sign-in sheet as the educator. */
+  educatorName: string
+  /** The service the sheet is returned to, printed in its header. */
+  orgName: string
+  orgRegion: string
+  /** Where the weekly sign-in sheet is emailed. */
+  coordinatorEmail: string
+  /** Which client the Email buttons hand off to. */
+  emailClient: 'gmail' | 'default'
 }
 
 export interface Database {

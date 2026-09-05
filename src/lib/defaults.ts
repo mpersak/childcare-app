@@ -31,6 +31,12 @@ export const DEFAULT_SETTINGS: Settings = {
 
   openTime: '07:00',
   closeTime: '18:00',
+
+  educatorName: '',
+  orgName: '',
+  orgRegion: '',
+  coordinatorEmail: '',
+  emailClient: 'gmail',
 }
 
 export const CHILD_COLOURS = [
