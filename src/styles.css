@@ -633,7 +633,11 @@ textarea.input { resize: vertical; }
 .sig-mark {
   color: var(--good); font-weight: 700; cursor: help; font-size: 12px;
   border-radius: 3px; position: relative;
+  /* The glyph is tiny; pad the hit area so it is reachable by touch. */
+  display: inline-grid; place-items: center;
+  min-width: 26px; min-height: 26px;
 }
+.sig-mark:hover { background: var(--surface-2); }
 .sig-mark:hover .sig-pop, .sig-mark:focus-visible .sig-pop { display: block; }
 .sig-pop {
   display: none; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
