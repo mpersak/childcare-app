@@ -162,3 +162,35 @@ export function readableHTML(db: Database): string {
 <th></th></tr></thead><tbody>${notes}</tbody></table>
 </body></html>`
 }
+
+export function childrenCSV(db: Database): string {
+  const rows: unknown[][] = [[
+    'First name', 'Last name', 'Date of birth', 'Status', 'Started', 'Left',
+    'Hourly rate', 'Allergies', 'Medical', 'Emergency contact',
+    'Bill payer', 'Bill payer email', 'Bill payer phone', 'Other guardians', 'Notes',
+  ]]
+  for (const c of db.children) {
+    const payer = c.guardians.find(g => g.primary) ?? c.guardians[0]
+    const others = c.guardians.filter(g => g !== payer)
+      .map(g => `${g.name} (${g.relationship}) ${g.phone} ${g.email}`.trim())
+      .join(' | ')
+    rows.push([
+      c.firstName, c.lastName, c.dob, c.status, c.startDate, c.endDate,
+      c.hourlyRate ?? '', c.allergies, c.medical, c.emergencyContact,
+      payer?.name ?? '', payer?.email ?? '', payer?.phone ?? '', others, c.general,
+    ])
+  }
+  return toCSV(rows)
+}
+
+export function schedulesCSV(db: Database): string {
+  const rows: unknown[][] = [['Child', 'Day', 'From', 'To', 'Effective from', 'Effective to', 'Active']]
+  for (const s of db.schedules) {
+    rows.push([
+      childName(db.children.find(c => c.id === s.childId)),
+      WEEKDAYS[s.weekday], s.start, s.end, s.effectiveFrom, s.effectiveTo,
+      s.active ? 'yes' : 'no',
+    ])
+  }
+  return toCSV(rows)
+}

@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "selftest": "tsc src/lib/selftest.ts --outDir .selftest --module commonjs --target ES2022 --moduleResolution node --skipLibCheck && node -e \"require(`fs`).writeFileSync(`.selftest/package.json`,`{\\\"type\\\":\\\"commonjs\\\"}`)\" && node .selftest/lib/selftest.js"
+    "selftest": "tsc src/lib/selftest.ts --outDir .selftest --module commonjs --target ES2022 --moduleResolution node --skipLibCheck && node scripts/run-selftest.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

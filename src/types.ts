@@ -197,6 +197,13 @@ export interface Settings {
   coordinatorEmail: string
   /** Which client the Email buttons hand off to. */
   emailClient: 'gmail' | 'default'
+
+  /** Google Cloud OAuth client ID for Drive backups. Empty disables Drive. */
+  driveClientId: string
+  driveFolder: string
+  /** Days between automatic Drive backups. 0 turns automation off. */
+  autoBackupDays: number
+  lastBackupAt: string
 }
 
 export interface Database {

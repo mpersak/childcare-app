@@ -37,6 +37,11 @@ export const DEFAULT_SETTINGS: Settings = {
   orgRegion: '',
   coordinatorEmail: '',
   emailClient: 'gmail',
+
+  driveClientId: '',
+  driveFolder: 'Childcare backups',
+  autoBackupDays: 7,
+  lastBackupAt: '',
 }
 
 export const CHILD_COLOURS = [

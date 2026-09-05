@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useStore } from '../lib/store'
 import { Card, ConfirmButton, Field, PageHead } from '../components/ui'
 import { SyncPanel, SecurityPanel } from '../components/SyncPanel'
+import { BackupPanel } from '../components/BackupPanel'
 import { SheetSettings } from './SignSheet'
 import { useVault } from '../lib/vault'
 import { attendanceCSV, download, invoicesCSV, readableHTML } from '../lib/exporters'
@@ -193,7 +194,9 @@ export default function SettingsPage() {
       <SyncPanel />
       <SecurityPanel />
 
-      <Card title="Backups and data">
+      <BackupPanel />
+
+      <Card title="Other exports">
         <p className="muted">
           Sync keeps a copy on GitHub, encrypted. An exported JSON file is plaintext, so
           treat it as a file containing children's personal details.
