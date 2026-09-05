@@ -88,6 +88,33 @@ export function isEnvelope(value: unknown): value is Envelope {
 }
 
 /**
+ * Hash for the teacher PIN.
+ *
+ * This guards a *mode switch*, not the data: by the time it is checked the vault
+ * is already unlocked and the key is in memory. It stops a parent at the door
+ * idly tapping into the records; it is not, and cannot be, a defence against
+ * someone with the decrypted document. Hashed anyway so a PIN never appears in
+ * a plaintext backup export.
+ */
+export async function hashPin(pin: string, salt: Uint8Array): Promise<string> {
+  const base = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: salt as BufferSource, iterations: 100_000, hash: 'SHA-256' },
+    base,
+    256,
+  )
+  return toBase64(new Uint8Array(bits))
+}
+
+/** Constant-time-ish comparison; both sides are fixed-length base64 here. */
+export function sameHash(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
+/**
  * A printable recovery key. The passphrase is the only way into the data, so
  * this exists to be written down and stored somewhere physical.
  */

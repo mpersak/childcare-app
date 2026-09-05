@@ -42,6 +42,10 @@ export const DEFAULT_SETTINGS: Settings = {
   driveFolder: 'Childcare backups',
   autoBackupDays: 7,
   lastBackupAt: '',
+
+  teacherPinHash: '',
+  teacherPinSalt: '',
+  parentIdleMinutes: 10,
 }
 
 export const CHILD_COLOURS = [

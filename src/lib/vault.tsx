@@ -49,6 +49,8 @@ interface VaultApi {
 
   create(passphrase: string): Promise<void>
   unlock(passphrase: string): Promise<void>
+  /** Second-device setup: pull the existing vault from GitHub and open it here. */
+  restoreFromGithub(cfg: GithubConfig, passphrase: string): Promise<void>
   lock(): void
   changePassphrase(current: string, next: string): Promise<void>
   /** Confirms a passphrase without changing state — used to leave parent mode. */
@@ -155,6 +157,51 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     }
     setStatus('unlocked')
   }, [])
+
+  /**
+   * Adding a device. The remote envelope carries the salt it was written with,
+   * so the key must be derived from *that*, not from a fresh one — deriving a
+   * new salt here is exactly what would make the download undecryptable.
+   */
+  const restoreFromGithub = useCallback(async (cfg: GithubConfig, passphrase: string) => {
+    const remote = await getFile(cfg, DOC_FILE)
+    if (!remote) {
+      throw new Error('No vault found in that repository. Check the owner, repository and folder.')
+    }
+
+    let envelope: Envelope
+    try {
+      envelope = JSON.parse(remote.content) as Envelope
+    } catch {
+      throw new Error('The file in that repository is not readable as a vault.')
+    }
+    if (!isEnvelope(envelope)) throw new Error('That file is not a vault export.')
+
+    const salt = saltOf(envelope)
+    const key = await deriveKey(passphrase, salt, envelope.iter)
+    let plain: string
+    try {
+      plain = await decryptString(key, envelope)
+    } catch {
+      throw new Error('That passphrase does not match the vault in this repository.')
+    }
+
+    const sync = await encryptString(key, salt, JSON.stringify(cfg))
+    keyRef.current = key
+    saltRef.current = salt
+    commit({
+      salt: toBase64(salt),
+      doc: envelope,
+      sync,
+      remoteSha: remote.sha,
+      lastSyncAt: new Date().toISOString(),
+      pending: [],
+    })
+    setDb(migrate(JSON.parse(plain) as Database))
+    setGithub(cfg)
+    setSyncState('idle')
+    setStatus('unlocked')
+  }, [commit])
 
   const lock = useCallback(() => {
     keyRef.current = null
@@ -418,7 +465,7 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     lastSyncAt: record?.lastSyncAt ?? null,
     pendingCount: record?.pending.length ?? 0,
     github,
-    create, unlock, lock, changePassphrase, verify,
+    create, unlock, restoreFromGithub, lock, changePassphrase, verify,
     persist, replace,
     connectGithub, disconnectGithub, syncNow, pullRemote, resolveConflict,
     saveSignature, loadSignature,
@@ -426,7 +473,7 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     destroy,
   }), [
     status, db, syncState, syncMessage, record, github,
-    create, unlock, lock, changePassphrase, verify, persist, replace,
+    create, unlock, restoreFromGithub, lock, changePassphrase, verify, persist, replace,
     connectGithub, disconnectGithub, syncNow, pullRemote, resolveConflict,
     saveSignature, loadSignature, destroy,
   ])

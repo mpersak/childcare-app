@@ -3,6 +3,7 @@ import { useStore } from '../lib/store'
 import { Card, ConfirmButton, Field, PageHead } from '../components/ui'
 import { SyncPanel, SecurityPanel } from '../components/SyncPanel'
 import { BackupPanel } from '../components/BackupPanel'
+import { PinPanel } from '../components/PinPanel'
 import { SheetSettings } from './SignSheet'
 import { useVault } from '../lib/vault'
 import { attendanceCSV, download, invoicesCSV, readableHTML } from '../lib/exporters'
@@ -192,6 +193,8 @@ export default function SettingsPage() {
       <SheetSettings />
 
       <SyncPanel />
+      <PinPanel />
+
       <SecurityPanel />
 
       <BackupPanel />

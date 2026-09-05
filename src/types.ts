@@ -204,6 +204,12 @@ export interface Settings {
   /** Days between automatic Drive backups. 0 turns automation off. */
   autoBackupDays: number
   lastBackupAt: string
+
+  /** Short PIN for leaving parent mode. Empty means fall back to the passphrase. */
+  teacherPinHash: string
+  teacherPinSalt: string
+  /** Minutes of no interaction before the door tablet drops back to parent mode. 0 = never. */
+  parentIdleMinutes: number
 }
 
 export interface Database {

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
-import { StoreProvider } from './lib/store'
+import { StoreProvider, useStore } from './lib/store'
 import { VaultProvider, useVault } from './lib/vault'
 
 import Lock from './pages/Lock'
@@ -41,6 +41,34 @@ function ParentShell({ onLeave }: { onLeave(): void }) {
 }
 
 /**
+ * Drops the door tablet back to parent mode after a spell of no interaction, so
+ * an unattended device does not sit on the notes and the finances.
+ */
+function useIdleReturn(active: boolean, minutes: number, onIdle: () => void) {
+  useEffect(() => {
+    if (!active || minutes <= 0) return
+    let timer = window.setTimeout(onIdle, minutes * 60_000)
+    const reset = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(onIdle, minutes * 60_000)
+    }
+    const events = ['pointerdown', 'keydown', 'wheel'] as const
+    for (const e of events) window.addEventListener(e, reset, { passive: true })
+    return () => {
+      window.clearTimeout(timer)
+      for (const e of events) window.removeEventListener(e, reset)
+    }
+  }, [active, minutes, onIdle])
+}
+
+/** Wraps the teacher app so the idle timer can read settings from the store. */
+function TeacherWithIdle({ onIdle }: { onIdle(): void }) {
+  const { db } = useStore()
+  useIdleReturn(true, db.settings.parentIdleMinutes, onIdle)
+  return <TeacherShell />
+}
+
+/**
  * HashRouter rather than BrowserRouter: GitHub Pages serves static files only,
  * so a deep link like /invoices/x would 404 on refresh under path routing.
  */
@@ -75,10 +103,12 @@ function Shell() {
     () => (sessionStorage.getItem(MODE_KEY) as Mode) || 'choose',
   )
 
-  const pick = (next: Mode) => {
+  const pick = useCallback((next: Mode) => {
     setMode(next)
     try { sessionStorage.setItem(MODE_KEY, next) } catch { /* private mode */ }
-  }
+  }, [])
+
+  const toParent = useCallback(() => pick('parent'), [pick])
 
   // Nothing renders until the vault is open — the app has no plaintext to show.
   if (vault.status !== 'unlocked' || !vault.db) return <Lock />
@@ -87,7 +117,7 @@ function Shell() {
     <StoreProvider initial={vault.db} persist={vault.persist}>
       {mode === 'choose' && <ModeSelect onPick={pick} />}
       {mode === 'parent' && <ParentShell onLeave={() => pick('teacher')} />}
-      {mode === 'teacher' && <TeacherShell />}
+      {mode === 'teacher' && <TeacherWithIdle onIdle={toParent} />}
     </StoreProvider>
   )
 }

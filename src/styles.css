@@ -851,3 +851,23 @@ textarea.input { resize: vertical; }
   body { background: #fff; color: #000; }
   a { color: #000; text-decoration: none; }
 }
+
+/* --------------------------------- pin pad ------------------------------- */
+.pinpad-body { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.pin-dots { display: flex; gap: 12px; }
+.pin-dot {
+  width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid var(--border-strong); background: transparent;
+  transition: background .12s ease, border-color .12s ease;
+}
+.pin-dot.on { background: var(--accent); border-color: var(--accent); }
+.pinpad { display: grid; grid-template-columns: repeat(3, 76px); gap: 10px; }
+.pin-key {
+  height: 62px; font: inherit; font-size: 22px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--surface-1);
+  color: var(--text-primary); border-radius: var(--radius-sm);
+}
+.pin-key:hover { background: var(--surface-2); }
+.pin-key:active { transform: scale(.96); }
+.pin-key.subtle { font-size: 13px; color: var(--text-muted); }
+.lock-card.wide { width: min(560px, 100%); }
