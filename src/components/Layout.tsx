@@ -4,16 +4,16 @@ import { formatDate, today } from '../lib/dates'
 import { amountDue, isOverdue } from '../lib/invoicing'
 
 const NAV = [
-  { to: '/', label: 'Dashboard', end: true },
-  { to: '/signin', label: 'Sign in / out' },
-  { to: '/attendance', label: 'Attendance' },
-  { to: '/calendar', label: 'Calendar' },
-  { to: '/sheet', label: 'Sign in sheet' },
-  { to: '/children', label: 'Children' },
-  { to: '/notes', label: 'Notes' },
-  { to: '/invoices', label: 'Invoices' },
-  { to: '/finance', label: 'Finance' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/', label: 'Dashboard', icon: '🏠', end: true },
+  { to: '/signin', label: 'Sign in / out', icon: '👋' },
+  { to: '/attendance', label: 'Attendance', icon: '📋' },
+  { to: '/calendar', label: 'Calendar', icon: '📅' },
+  { to: '/sheet', label: 'Sign in sheet', icon: '📄' },
+  { to: '/children', label: 'Children', icon: '🧒' },
+  { to: '/notes', label: 'Notes', icon: '📝' },
+  { to: '/invoices', label: 'Invoices', icon: '💌' },
+  { to: '/finance', label: 'Finance', icon: '🌱' },
+  { to: '/settings', label: 'Settings', icon: '⚙️' },
 ]
 
 export default function Layout() {
@@ -48,7 +48,7 @@ export default function Layout() {
             return (
               <NavLink key={item.to} to={item.to} end={item.end}
                        className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-                <span>{item.label}</span>
+                <span><i className="nav-icon" aria-hidden="true">{item.icon}</i>{item.label}</span>
                 {count > 0 && <span className="nav-count">{count}</span>}
               </NavLink>
             )

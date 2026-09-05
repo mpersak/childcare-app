@@ -8,6 +8,14 @@ import { formatMoney } from '../lib/money'
 import { formatDate, formatHours, minutesToTime, timeToMinutes, nowTime, today } from '../lib/dates'
 import { buildDemoDatabase } from '../lib/demo'
 
+/** A friendlier page title than "Dashboard" for a screen opened every morning. */
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
 export default function Dashboard() {
   const { db, actions } = useStore()
   const date = today()
@@ -73,7 +81,15 @@ export default function Dashboard() {
 
   return (
     <>
-      <PageHead title="Dashboard" subtitle={formatDate(date, locale)} />
+      <PageHead
+        title={greeting()}
+        subtitle={
+          <span className="greeting">
+            <span>{formatDate(date, locale)}</span>
+            {onSite > 0 && <span>· {onSite} here right now</span>}
+          </span>
+        }
+      />
 
       {closure && (
         <div className="banner">

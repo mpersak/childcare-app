@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useStore, childName } from '../lib/store'
 import { Avatar, Badge, Card, EmptyState, Field, Modal, PageHead } from '../components/ui'
@@ -75,7 +75,8 @@ export default function Children() {
               const openNotes = db.notes.filter(n => n.childId === child.id && n.flagged).length
 
               return (
-                <Link className="child-card" key={child.id} to={`/children/${child.id}`}>
+                <Link className="child-card" key={child.id} to={`/children/${child.id}`}
+                      style={{ ['--child-colour' as string]: child.colour } as CSSProperties}>
                   <div className="child-card-head">
                     <Avatar child={child} size={42} />
                     <div>

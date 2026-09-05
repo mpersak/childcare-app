@@ -7,20 +7,20 @@
 :root {
   color-scheme: light;
 
-  --bg: #f4f4f2;
-  --surface-1: #fcfcfb;
-  --surface-2: #f0efec;
-  --surface-3: #e6e5e1;
-  --border: #dcdbd6;
-  --border-strong: #c3c2b7;
+  --bg: #fdf6f0;
+  --surface-1: #fffdfb;
+  --surface-2: #f8efe7;
+  --surface-3: #f0e3d8;
+  --border: #ecdfd4;
+  --border-strong: #d9c5b4;
 
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #78776f;
+  --text-primary: #2b2320;
+  --text-secondary: #6b5b52;
+  --text-muted: #8d7b70;
 
   --accent: #2a78d6;
   --accent-ink: #ffffff;
-  --accent-soft: #e8f0fc;
+  --accent-soft: #e6f0fd;
 
   --good: #0ca30c;
   --warning: #fab219;
@@ -34,26 +34,27 @@
   --ramp-3: #2a78d6;
   --ramp-4: #184f95;
 
-  --grid: #e6e5e1;
-  --shadow: 0 1px 2px rgba(11, 11, 11, .06), 0 4px 14px rgba(11, 11, 11, .05);
-  --radius: 10px;
-  --radius-sm: 6px;
+  --grid: #f0e3d8;
+  --shadow: 0 2px 4px rgba(120, 80, 55, .07), 0 8px 24px rgba(120, 80, 55, .07);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --pill: 999px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
 
-    --bg: #121211;
-    --surface-1: #1a1a19;
-    --surface-2: #232322;
-    --surface-3: #2e2e2c;
-    --border: #383835;
-    --border-strong: #4a4a46;
+    --bg: #14120f;
+    --surface-1: #1c1b1a;
+    --surface-2: #262320;
+    --surface-3: #322d29;
+    --border: #3b352f;
+    --border-strong: #4e463e;
 
     --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #94938a;
+    --text-secondary: #ccc2b6;
+    --text-muted: #9c9086;
 
     --accent: #3987e5;
     --accent-ink: #0b0b0b;
@@ -66,7 +67,7 @@
     --ramp-3: #3987e5;
     --ramp-4: #256abf;
 
-    --grid: #2e2e2c;
+    --grid: #322d29;
     --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 6px 18px rgba(0, 0, 0, .35);
   }
 }
@@ -77,7 +78,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text-primary);
-  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 15px/1.55 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -756,6 +757,89 @@ textarea.input { resize: vertical; }
   .sheet-table { font-size: 10px; }
   @page { size: A4 portrait; margin: 12mm; }
 }
+
+/* ------------------------------ friendly pass ---------------------------- */
+/* Softer shapes and a little motion. Anything that goes to a third party —
+   the invoice and the sign-in sheet — deliberately stays plain and formal. */
+
+.btn, .pill, .seg { border-radius: var(--pill); font-weight: 600; }
+.btn.primary { box-shadow: 0 3px 8px rgba(42, 120, 214, .28); }
+.btn.primary:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.input { border-radius: var(--radius-sm); }
+.card { border-radius: var(--radius); }
+
+.brand-mark, .lock-mark, .inv-logo {
+  box-shadow: 0 3px 10px rgba(42, 120, 214, .3);
+}
+
+/* Avatars get a soft halo so a wall of them reads as friendly, not clinical. */
+.avatar, .kiosk-avatar {
+  box-shadow: 0 0 0 3px var(--surface-1), 0 2px 6px rgba(120, 80, 55, .22);
+}
+
+.nav-link { border-radius: var(--pill); }
+.nav-icon { font-size: 15px; line-height: 1; width: 20px; text-align: center; }
+.nav-link span:first-child { display: inline-flex; align-items: center; gap: 9px; }
+
+/* A child's own colour tints their card, very lightly. */
+.child-card { position: relative; overflow: hidden; }
+.child-card::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 4px;
+  background: var(--child-colour, var(--accent)); opacity: .9;
+}
+
+.stat { border-radius: var(--radius); }
+.stat-value { letter-spacing: -.02em; }
+
+/* Greeting on the dashboard. */
+.greeting { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.greeting-emoji { font-size: 22px; }
+
+/* The kiosk is the one screen a parent uses, so it gets the most warmth. */
+.kiosk-tile { border-radius: 22px; }
+.kiosk-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(120, 80, 55, .14); }
+.kiosk-tile.state-in { animation: settle .4s ease both; }
+.kiosk-avatar { transition: transform .18s ease; }
+.kiosk-tile:hover .kiosk-avatar { transform: scale(1.06) rotate(-3deg); }
+
+.mode-card { border-radius: 22px; }
+.mode-card:hover .mode-icon { transform: scale(1.12) rotate(-6deg); }
+.mode-icon { transition: transform .2s ease; display: inline-block; }
+
+/* A gentle pulse on whoever is currently on site. */
+.row-live td:first-child::before,
+.dot.state-in { animation: breathe 2.4s ease-in-out infinite; }
+
+.banner { border-radius: var(--radius); }
+.banner.success { animation: settle .35s ease both; }
+
+.empty h3::before { content: '🧸'; display: block; font-size: 30px; margin-bottom: 6px; }
+
+@keyframes settle {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .55; }
+}
+
+/* Motion is decoration here; drop all of it when the reader asks. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  .btn.primary:hover:not(:disabled), .kiosk-tile:hover { transform: none; }
+}
+
+/* Documents that leave the building stay sober. */
+.sheet, .sheet-table, .invoice-doc {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.sheet, .invoice-doc { border-radius: var(--radius-sm); }
 
 /* --------------------------------- print -------------------------------- */
 @media print {
