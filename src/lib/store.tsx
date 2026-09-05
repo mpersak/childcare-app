@@ -24,6 +24,13 @@ interface Actions {
   deleteAttendance(id: string): void
   checkIn(childId: string, date?: ISODate): void
   checkOut(childId: string, date?: ISODate): void
+  /** Check in or out with a captured guardian signature attached. */
+  signChild(
+    direction: 'in' | 'out',
+    childId: string,
+    sig: { dataUrl: string; name: string },
+    date?: ISODate,
+  ): void
   /** Creates records for every child booked on that date. Never touches existing rows. */
   fillFromSchedule(date: ISODate): void
 
@@ -150,6 +157,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
       checkOut(childId, date = today()) {
         upsertAttendance({ childId, date, status: 'present', checkOut: nowTime() })
+      },
+      signChild(direction, childId, sig, date = today()) {
+        const time = nowTime()
+        const signature = { ...sig, at: new Date().toISOString(), time }
+        upsertAttendance(direction === 'in'
+          ? { childId, date, status: 'present', checkIn: time, signIn: signature }
+          : { childId, date, status: 'present', checkOut: time, signOut: signature })
       },
       fillFromSchedule(date) {
         mutate(d => {

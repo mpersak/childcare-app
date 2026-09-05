@@ -8,6 +8,7 @@ import { calcBilling } from './billing'
 import { buildInvoice, amountDue, isOverdue, recalcTotals } from './invoicing'
 import { summarise } from './finance'
 import { addDays, timeToMinutes, toISODate, today } from './dates'
+import { assignLanes, buildDay, dayWindow, occupancy } from './daygrid'
 import { round2 } from './money'
 
 let failures = 0
@@ -135,6 +136,29 @@ check('the uninvoiced day is still counted as work in progress', fin.unbilled, 8
 
 const voided = { ...inv, status: 'void' as const }
 check('a void invoice owes nothing', amountDue(voided), 0)
+
+// --- day timeline ---------------------------------------------------------
+const lanes1 = assignLanes([{ start: 0, end: 60 }, { start: 60, end: 120 }])
+check('touching bookings share one lane', lanes1.lanes, 1)
+
+const lanes2 = assignLanes([{ start: 0, end: 90 }, { start: 60, end: 120 }])
+check('overlapping bookings get their own lanes', lanes2.lanes, 2)
+
+const lanes3 = assignLanes([{ start: 0, end: 90 }, { start: 30, end: 60 }, { start: 95, end: 120 }])
+check('a later booking reuses a freed lane', lanes3.lanes, 2)
+
+const win = dayWindow(db, [{ start: 6 * 60, end: 19 * 60 + 30 }])
+check('the window widens to cover an early start', win.from, 6 * 60)
+check('the window snaps out to a whole hour', win.to, 20 * 60)
+
+const dayRows = buildDay(db, '2026-03-02')
+check('the day shows the child booked that Monday', dayRows.length, 1)
+check('the bar runs from check-in to check-out', dayRows[0].actual?.start, 8 * 60)
+check('a completed day reads as signed out', dayRows[0].status, 'done')
+
+const occ = occupancy(dayRows, 8 * 60, 15 * 60, 60)
+check('occupancy counts the child through the middle of the day', occ[3].count, 1)
+check('occupancy is empty once everyone has gone', occupancy(dayRows, 16 * 60, 17 * 60, 60)[0].count, 0)
 
 if (failures > 0) throw new Error(`${failures} check(s) failed.`)
 console.log('\nAll checks passed.')

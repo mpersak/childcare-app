@@ -94,14 +94,28 @@ export function Modal({ open, title, onClose, children, footer, wide = false }: 
 }) {
   const ref = useRef<HTMLDivElement>(null)
 
+  // Callers pass an inline arrow for onClose, so its identity changes on every
+  // render. Keeping it in a ref stops the effects below from re-running (and
+  // stealing focus back out of whatever the user is typing into).
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
+
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeRef.current() }
     document.addEventListener('keydown', onKey)
-    // Move focus into the dialog so Escape and tabbing behave.
-    ref.current?.focus()
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    // Once, when the dialog opens: put the caret in the first real field,
+    // falling back to the dialog itself so Escape and tabbing still work.
+    const first = ref.current?.querySelector<HTMLElement>(
+      'input:not([type="hidden"]):not([disabled]), select, textarea',
+    )
+    ;(first ?? ref.current)?.focus()
+  }, [open])
 
   if (!open) return null
   return (

@@ -5,6 +5,7 @@ import { AuthProvider, RequireAuth } from './lib/auth'
 
 import Dashboard from './pages/Dashboard'
 import Attendance from './pages/Attendance'
+import SignInOut from './pages/SignInOut'
 import Calendar from './pages/Calendar'
 import Children from './pages/Children'
 import ChildDetail from './pages/ChildDetail'
@@ -28,6 +29,7 @@ export default function App() {
               <Route element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="attendance" element={<Attendance />} />
+                <Route path="signin" element={<SignInOut />} />
                 <Route path="calendar" element={<Calendar />} />
                 <Route path="children" element={<Children />} />
                 <Route path="children/:id" element={<ChildDetail />} />

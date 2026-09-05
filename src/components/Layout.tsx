@@ -5,6 +5,7 @@ import { amountDue, isOverdue } from '../lib/invoicing'
 
 const NAV = [
   { to: '/', label: 'Dashboard', end: true },
+  { to: '/signin', label: 'Sign in / out' },
   { to: '/attendance', label: 'Attendance' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/children', label: 'Children' },

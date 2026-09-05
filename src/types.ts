@@ -47,6 +47,19 @@ export interface ScheduleBlock {
 
 export type AttendanceStatus = 'present' | 'absent' | 'sick' | 'holiday'
 
+/**
+ * A parent or guardian signing a child in or out. `dataUrl` is a PNG of the
+ * drawn signature; `at` is when it was captured, which is the defensible
+ * timestamp — the editable check-in time on the record is not.
+ */
+export interface SignatureRecord {
+  dataUrl: string
+  name: string
+  at: ISOTimestamp
+  /** The time that was recorded on the attendance row when this was signed. */
+  time: string
+}
+
 export interface AttendanceRecord {
   id: string
   childId: string
@@ -62,6 +75,9 @@ export interface AttendanceRecord {
   /** Set once the record has been pulled onto an invoice; blocks double billing. */
   invoiceId: string | null
   createdAt: ISOTimestamp
+  /** Optional: records created before signatures existed simply have none. */
+  signIn?: SignatureRecord | null
+  signOut?: SignatureRecord | null
 }
 
 export type NoteCategory =

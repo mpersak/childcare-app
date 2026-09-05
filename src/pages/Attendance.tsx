@@ -5,7 +5,7 @@ import { Avatar, Badge, Card, PageHead } from '../components/ui'
 import { calcBilling, scheduleFor } from '../lib/billing'
 import { formatMoney } from '../lib/money'
 import { addDays, formatDate, formatHours, today, WEEKDAYS } from '../lib/dates'
-import type { AttendanceStatus } from '../types'
+import type { AttendanceStatus, SignatureRecord } from '../types'
 
 const STATUSES: AttendanceStatus[] = ['present', 'absent', 'sick', 'holiday']
 
@@ -139,18 +139,24 @@ export default function Attendance() {
                         </select>
                       </td>
                       <td>
-                        <input
-                          className="input tight" type="time" disabled={locked || status !== 'present'}
-                          value={record?.checkIn ?? ''}
-                          onChange={e => set({ status: 'present', checkIn: e.target.value || null })}
-                        />
+                        <span className="time-cell">
+                          <input
+                            className="input tight" type="time" disabled={locked || status !== 'present'}
+                            value={record?.checkIn ?? ''}
+                            onChange={e => set({ status: 'present', checkIn: e.target.value || null })}
+                          />
+                          <SignatureMark sig={record?.signIn} />
+                        </span>
                       </td>
                       <td>
-                        <input
-                          className="input tight" type="time" disabled={locked || status !== 'present'}
-                          value={record?.checkOut ?? ''}
-                          onChange={e => set({ status: 'present', checkOut: e.target.value || null })}
-                        />
+                        <span className="time-cell">
+                          <input
+                            className="input tight" type="time" disabled={locked || status !== 'present'}
+                            value={record?.checkOut ?? ''}
+                            onChange={e => set({ status: 'present', checkOut: e.target.value || null })}
+                          />
+                          <SignatureMark sig={record?.signOut} />
+                        </span>
                       </td>
                       <td className="num">
                         {billing && billing.billedHours > 0 ? formatHours(billing.billedHours) : '—'}
@@ -196,6 +202,18 @@ export default function Attendance() {
         <WeekStrip date={date} onPick={setDate} />
       </Card>
     </>
+  )
+}
+
+/** A guardian signature captured at the door, shown beside the time it set. */
+function SignatureMark({ sig }: { sig: SignatureRecord | null | undefined }) {
+  if (!sig) return null
+  return (
+    <span className="sig-mark" tabIndex={0}
+          title={`Signed by ${sig.name} at ${new Date(sig.at).toLocaleString()}`}>
+      ✓
+      <img className="sig-pop" src={sig.dataUrl} alt={`Signature of ${sig.name}`} />
+    </span>
   )
 }
 

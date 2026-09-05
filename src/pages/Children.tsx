@@ -124,7 +124,7 @@ export default function Children() {
       >
         <div className="form-grid">
           <Field label="First name">
-            <input className="input" autoFocus value={draft.firstName}
+            <input className="input" value={draft.firstName}
                    onChange={e => setDraft({ ...draft, firstName: e.target.value })} />
           </Field>
           <Field label="Last name">
