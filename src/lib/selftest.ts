@@ -9,6 +9,7 @@ import { buildInvoice, amountDue, isOverdue, recalcTotals } from './invoicing'
 import { summarise } from './finance'
 import { addDays, timeToMinutes, toISODate, today } from './dates'
 import { assignLanes, buildDay, dayWindow, occupancy } from './daygrid'
+import { normaliseRepo } from './github'
 import { round2 } from './money'
 
 let failures = 0
@@ -159,6 +160,26 @@ check('a completed day reads as signed out', dayRows[0].status, 'done')
 const occ = occupancy(dayRows, 8 * 60, 15 * 60, 60)
 check('occupancy counts the child through the middle of the day', occ[3].count, 1)
 check('occupancy is empty once everyone has gone', occupancy(dayRows, 16 * 60, 17 * 60, 60)[0].count, 0)
+
+// --- repository input -----------------------------------------------------
+check('a bare repository name is left alone',
+  normaliseRepo('mpersak', 'childcare-data'), { owner: 'mpersak', repo: 'childcare-data' })
+check('a pasted https URL is split into owner and repo',
+  normaliseRepo('mpersak', 'https://github.com/mpersak/childcare-data'),
+  { owner: 'mpersak', repo: 'childcare-data' })
+check('a URL overrides a mismatched owner field',
+  normaliseRepo('someone-else', 'https://github.com/mpersak/childcare-data'),
+  { owner: 'mpersak', repo: 'childcare-data' })
+check('owner/repo typed into the repository box is split',
+  normaliseRepo('', 'mpersak/childcare-data'), { owner: 'mpersak', repo: 'childcare-data' })
+check('a .git suffix is dropped',
+  normaliseRepo('mpersak', 'https://github.com/mpersak/childcare-data.git'),
+  { owner: 'mpersak', repo: 'childcare-data' })
+check('an SSH remote is understood',
+  normaliseRepo('', 'git@github.com:mpersak/childcare-data.git'),
+  { owner: 'mpersak', repo: 'childcare-data' })
+check('surrounding whitespace is trimmed',
+  normaliseRepo('  mpersak ', ' childcare-data '), { owner: 'mpersak', repo: 'childcare-data' })
 
 if (failures > 0) throw new Error(`${failures} check(s) failed.`)
 console.log('\nAll checks passed.')

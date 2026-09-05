@@ -36,6 +36,47 @@ export class GithubError extends Error {
 
 const API = 'https://api.github.com'
 
+/**
+ * Accepts what people actually paste: a full repository URL, `owner/repo`, or a
+ * bare name. Pasting the URL from the address bar is the obvious thing to do, so
+ * it should work rather than producing a malformed request.
+ */
+export function normaliseRepo(owner: string, repo: string): { owner: string; repo: string } {
+  let o = owner.trim().replace(/^@/, '')
+  let r = repo.trim()
+
+  const fromUrl = r.match(/github\.com[/:]+([^/]+)\/([^/?#\s]+)/i)
+  if (fromUrl) {
+    o = fromUrl[1]
+    r = fromUrl[2]
+  } else if (r.includes('/')) {
+    // "owner/repo" typed into the repository box.
+    const parts = r.split('/').filter(Boolean)
+    if (parts.length >= 2) {
+      o = parts[parts.length - 2]
+      r = parts[parts.length - 1]
+    }
+  }
+
+  // And the same courtesy if a URL landed in the owner box.
+  const ownerFromUrl = o.match(/github\.com[/:]+([^/?#\s]+)/i)
+  if (ownerFromUrl) o = ownerFromUrl[1]
+
+  return { owner: o.replace(/\/+$/, ''), repo: r.replace(/\.git$/i, '').replace(/\/+$/, '') }
+}
+
+/** fetch throws a bare TypeError for network faults; turn that into something readable. */
+async function request(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init)
+  } catch {
+    throw new GithubError(
+      'Could not reach GitHub. Check the connection, and that the owner and repository are names rather than a URL.',
+      0,
+    )
+  }
+}
+
 function headers(cfg: GithubConfig): HeadersInit {
   return {
     Authorization: `Bearer ${cfg.token}`,
@@ -65,7 +106,7 @@ async function fail(res: Response): Promise<never> {
 /** Returns null when the file does not exist yet — the first-run case. */
 export async function getFile(cfg: GithubConfig, name: string): Promise<RemoteFile | null> {
   const url = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${filePath(cfg, name)}?ref=${encodeURIComponent(cfg.branch)}`
-  const res = await fetch(url, { headers: headers(cfg) })
+  const res = await request(url, { headers: headers(cfg) })
   if (res.status === 404) return null
   if (!res.ok) return fail(res)
 
@@ -76,7 +117,7 @@ export async function getFile(cfg: GithubConfig, name: string): Promise<RemoteFi
   }
 
   // Large files come back without inline content; fetch the blob instead.
-  const blobRes = await fetch(
+  const blobRes = await request(
     `${API}/repos/${cfg.owner}/${cfg.repo}/git/blobs/${body.sha}`,
     { headers: headers(cfg) },
   )
@@ -97,7 +138,7 @@ export async function putFile(
   message: string,
 ): Promise<string> {
   const url = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${filePath(cfg, name)}`
-  const res = await fetch(url, {
+  const res = await request(url, {
     method: 'PUT',
     headers: headers(cfg),
     body: JSON.stringify({
@@ -120,7 +161,7 @@ export async function deleteFile(
   cfg: GithubConfig, name: string, sha: string, message: string,
 ): Promise<void> {
   const url = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${filePath(cfg, name)}`
-  const res = await fetch(url, {
+  const res = await request(url, {
     method: 'DELETE',
     headers: headers(cfg),
     body: JSON.stringify({ message, sha, branch: cfg.branch }),
@@ -130,11 +171,18 @@ export async function deleteFile(
 
 /** Confirms the token works and the repo is reachable and private. */
 export async function checkAccess(cfg: GithubConfig): Promise<{ private: boolean; defaultBranch: string }> {
-  const res = await fetch(`${API}/repos/${cfg.owner}/${cfg.repo}`, { headers: headers(cfg) })
+  const res = await request(`${API}/repos/${cfg.owner}/${cfg.repo}`, { headers: headers(cfg) })
   if (!res.ok) return fail(res)
   const body = await res.json() as { private: boolean; default_branch: string; permissions?: { push?: boolean } }
-  if (!body.permissions?.push) {
-    throw new GithubError('That token can read the repository but not write to it.', 403)
+  // Only reject when GitHub explicitly says there is no write access. A
+  // fine-grained token may not report `permissions` at all, and refusing on a
+  // missing field would block a correctly-scoped token; the first write will
+  // report the truth either way.
+  if (body.permissions && body.permissions.push === false) {
+    throw new GithubError(
+      'That token can read the repository but not write to it. Set Contents to "Read and write".',
+      403,
+    )
   }
   return { private: body.private, defaultBranch: body.default_branch }
 }

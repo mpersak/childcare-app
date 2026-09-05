@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useVault } from '../lib/vault'
 import { Card, ConfirmButton, Field } from './ui'
-import type { GithubConfig } from '../lib/github'
+import { normaliseRepo, type GithubConfig } from '../lib/github'
 
 /** GitHub sync setup and status. Only ciphertext ever leaves the device. */
 export function SyncPanel() {
@@ -15,8 +15,18 @@ export function SyncPanel() {
 
   const connect = async () => {
     setBusy(true); setError(''); setResult('')
+    // Accepts a pasted repository URL or "owner/repo" as well as a bare name.
+    const { owner, repo } = normaliseRepo(form.owner, form.repo)
+    const cleaned: GithubConfig = {
+      ...form, owner, repo,
+      branch: form.branch.trim() || 'main',
+      path: form.path.trim(),
+      token: form.token.trim(),
+    }
     try {
-      setResult(await vault.connectGithub({ ...form, owner: form.owner.trim(), repo: form.repo.trim() }))
+      const message = await vault.connectGithub(cleaned)
+      setForm(cleaned)
+      setResult(message)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not connect.')
     } finally {
@@ -90,7 +100,7 @@ export function SyncPanel() {
               <input className="input" value={form.owner}
                      onChange={e => setForm({ ...form, owner: e.target.value })} />
             </Field>
-            <Field label="Repository" hint="Private, and separate from the app's own repo">
+            <Field label="Repository" hint="Name, owner/repo, or a pasted URL — all work">
               <input className="input" value={form.repo}
                      onChange={e => setForm({ ...form, repo: e.target.value })} />
             </Field>
