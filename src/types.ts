@@ -1,0 +1,183 @@
+/** Domain model. All dates are ISO `yyyy-mm-dd`, all times are 24h `HH:MM` local. */
+
+export type ISODate = string
+export type ISOTimestamp = string
+
+export interface Guardian {
+  id: string
+  name: string
+  relationship: string
+  phone: string
+  email: string
+  primary: boolean
+}
+
+export type ChildStatus = 'active' | 'waitlist' | 'archived'
+
+export interface Child {
+  id: string
+  firstName: string
+  lastName: string
+  dob: ISODate | ''
+  startDate: ISODate | ''
+  endDate: ISODate | ''
+  status: ChildStatus
+  /** Per-child override. null means "use the default rate from settings". */
+  hourlyRate: number | null
+  colour: string
+  guardians: Guardian[]
+  allergies: string
+  medical: string
+  emergencyContact: string
+  general: string
+  createdAt: ISOTimestamp
+}
+
+/** A recurring weekly booking. A child may have several per weekday. */
+export interface ScheduleBlock {
+  id: string
+  childId: string
+  weekday: number // 0 = Sunday .. 6 = Saturday
+  start: string
+  end: string
+  effectiveFrom: ISODate | ''
+  effectiveTo: ISODate | ''
+  active: boolean
+}
+
+export type AttendanceStatus = 'present' | 'absent' | 'sick' | 'holiday'
+
+export interface AttendanceRecord {
+  id: string
+  childId: string
+  date: ISODate
+  checkIn: string | null
+  checkOut: string | null
+  status: AttendanceStatus
+  /** Absences can still be charged (retainer days) — this decides. */
+  billable: boolean
+  /** Rate snapshot taken when the record is created, so past invoices never drift. */
+  rate: number
+  note: string
+  /** Set once the record has been pulled onto an invoice; blocks double billing. */
+  invoiceId: string | null
+  createdAt: ISOTimestamp
+}
+
+export type NoteCategory =
+  | 'general' | 'incident' | 'medical' | 'milestone' | 'behaviour' | 'meal' | 'nap'
+
+export interface KidNote {
+  id: string
+  childId: string
+  date: ISODate
+  category: NoteCategory
+  title: string
+  body: string
+  author: string
+  flagged: boolean
+  createdAt: ISOTimestamp
+}
+
+export interface InvoiceLine {
+  id: string
+  date: ISODate | ''
+  description: string
+  hours: number
+  rate: number
+  amount: number
+  attendanceId: string | null
+}
+
+export interface Adjustment {
+  id: string
+  description: string
+  /** Negative for a discount, positive for a surcharge. Taxed with the rest. */
+  amount: number
+}
+
+export interface Payment {
+  id: string
+  date: ISODate
+  amount: number
+  method: string
+  reference: string
+}
+
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void'
+
+export interface Invoice {
+  id: string
+  number: string
+  childId: string
+  periodStart: ISODate
+  periodEnd: ISODate
+  issueDate: ISODate
+  dueDate: ISODate
+  lines: InvoiceLine[]
+  adjustments: Adjustment[]
+  subtotal: number
+  tax: number
+  total: number
+  status: InvoiceStatus
+  payments: Payment[]
+  notes: string
+  createdAt: ISOTimestamp
+}
+
+/** A day the service is closed (public holiday, staff training, shutdown). */
+export interface Closure {
+  id: string
+  date: ISODate
+  name: string
+  /** Charged anyway (common for public holidays on a contracted day). */
+  billable: boolean
+}
+
+export type RoundingMode = 'nearest' | 'up' | 'down'
+
+export interface Settings {
+  businessName: string
+  businessEmail: string
+  businessPhone: string
+  businessAddress: string
+  logoText: string
+
+  currency: string
+  locale: string
+  defaultHourlyRate: number
+  /** Billed time is rounded to this many minutes. 1 = no rounding. */
+  roundingMinutes: number
+  roundingMode: RoundingMode
+  /** Every attended session bills at least this many hours. 0 disables. */
+  minimumHours: number
+  /** Cap on billable hours in a single day. 0 disables. */
+  dailyCapHours: number
+  /** Charged per minute past the booked end time. 0 disables. */
+  lateFeePerMinute: number
+
+  taxEnabled: boolean
+  taxName: string
+  taxRate: number
+
+  invoicePrefix: string
+  nextInvoiceNumber: number
+  paymentTermsDays: number
+  bankAccount: string
+  invoiceFooter: string
+
+  openTime: string
+  closeTime: string
+}
+
+export interface Database {
+  version: number
+  settings: Settings
+  children: Child[]
+  schedules: ScheduleBlock[]
+  attendance: AttendanceRecord[]
+  notes: KidNote[]
+  invoices: Invoice[]
+  closures: Closure[]
+  updatedAt: ISOTimestamp
+}

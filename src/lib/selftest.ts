@@ -1,0 +1,140 @@
+/**
+ * Plain-node checks for the parts that decide what people get charged.
+ * Run with:  npm run selftest
+ */
+import type { AttendanceRecord, Database, ScheduleBlock } from '../types'
+import { emptyDatabase, uid } from './defaults'
+import { calcBilling } from './billing'
+import { buildInvoice, amountDue, isOverdue, recalcTotals } from './invoicing'
+import { summarise } from './finance'
+import { addDays, timeToMinutes, toISODate, today } from './dates'
+import { round2 } from './money'
+
+let failures = 0
+function check(name: string, actual: unknown, expected: unknown) {
+  const ok = JSON.stringify(actual) === JSON.stringify(expected)
+  if (!ok) failures++
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : `\n        expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`}`)
+}
+
+function record(over: Partial<AttendanceRecord> = {}): AttendanceRecord {
+  return {
+    id: uid('att'), childId: 'c1', date: '2026-03-02',
+    checkIn: '08:00', checkOut: '15:00', status: 'present', billable: true,
+    rate: 12, note: '', invoiceId: null, createdAt: '2026-03-02T00:00:00.000Z',
+    ...over,
+  }
+}
+
+const block: ScheduleBlock = {
+  id: 's1', childId: 'c1', weekday: 1, start: '08:00', end: '15:00',
+  effectiveFrom: '', effectiveTo: '', active: true,
+}
+
+// --- date helpers ---------------------------------------------------------
+check('local ISO date does not shift timezone', toISODate(new Date(2026, 0, 1, 23, 30)), '2026-01-01')
+check('time parsing rejects nonsense', timeToMinutes('25:00'), null)
+check('time parsing reads HH:MM', timeToMinutes('08:45'), 525)
+
+// --- billing --------------------------------------------------------------
+const base = emptyDatabase()
+base.settings.defaultHourlyRate = 12
+base.settings.roundingMinutes = 15
+base.settings.roundingMode = 'nearest'
+
+check('flat 7 hours at 12/h', calcBilling(record(), base.settings, [block]).amount, 84)
+
+check('07:57–15:07 rounds to the nearest quarter hour',
+  calcBilling(record({ checkIn: '07:57', checkOut: '15:07' }), base.settings, [block]).billedHours, 7.25)
+
+const upSettings = { ...base.settings, roundingMode: 'up' as const }
+check('rounding up never loses a part-quarter',
+  calcBilling(record({ checkIn: '08:00', checkOut: '15:01' }), upSettings, [block]).billedHours, 7.25)
+
+check('still checked in bills nothing yet',
+  calcBilling(record({ checkOut: null }), base.settings, [block]).amount, 0)
+
+check('checkout before checkin bills nothing',
+  calcBilling(record({ checkIn: '15:00', checkOut: '08:00' }), base.settings, [block]).amount, 0)
+
+const minSettings = { ...base.settings, minimumHours: 3 }
+check('minimum charge lifts a short session',
+  calcBilling(record({ checkIn: '09:00', checkOut: '10:00' }), minSettings, [block]).amount, 36)
+
+const capSettings = { ...base.settings, dailyCapHours: 6 }
+check('daily cap limits a long session',
+  calcBilling(record({ checkIn: '07:00', checkOut: '18:00' }), capSettings, [block]).amount, 72)
+
+const lateSettings = { ...base.settings, lateFeePerMinute: 1 }
+const late = calcBilling(record({ checkOut: '15:20' }), lateSettings, [block])
+check('late fee counts minutes past the booked finish', late.lateMinutes, 20)
+check('late fee is added on top of the hourly charge', late.amount, round2(7.25 * 12 + 20))
+
+check('an unbilled absence charges nothing',
+  calcBilling(record({ status: 'absent', billable: false, checkIn: null, checkOut: null }), base.settings, [block]).amount, 0)
+check('a billed absence charges the contracted hours',
+  calcBilling(record({ status: 'absent', billable: true, checkIn: null, checkOut: null }), base.settings, [block]).amount, 84)
+check('a billed absence with no schedule charges nothing',
+  calcBilling(record({ status: 'absent', billable: true, checkIn: null, checkOut: null }), base.settings, []).amount, 0)
+
+// --- invoicing ------------------------------------------------------------
+const db: Database = emptyDatabase()
+db.settings.defaultHourlyRate = 12
+db.settings.taxEnabled = true
+db.settings.taxRate = 0.15
+db.settings.paymentTermsDays = 14
+db.children.push({
+  id: 'c1', firstName: 'Test', lastName: 'Child', dob: '', startDate: '', endDate: '',
+  status: 'active', hourlyRate: null, colour: '#2a78d6', guardians: [],
+  allergies: '', medical: '', emergencyContact: '', general: '', createdAt: '',
+})
+db.schedules.push(block)
+db.attendance.push(
+  record({ id: 'a1', date: '2026-03-02' }),
+  record({ id: 'a2', date: '2026-03-03' }),
+  record({ id: 'a3', date: '2026-03-04', invoiceId: 'already' }),
+)
+
+const draft = buildInvoice(db, 'c1', '2026-03-01', '2026-03-31')
+check('an already-invoiced day is left out', draft?.invoice.lines.length, 2)
+check('subtotal is the sum of the lines', draft?.invoice.subtotal, 168)
+check('tax is charged at the configured rate', draft?.invoice.tax, 25.2)
+check('total includes tax', draft?.invoice.total, 193.2)
+check('due date follows the payment terms', draft?.invoice.dueDate, addDays(draft!.invoice.issueDate, 14))
+
+const discounted = recalcTotals(draft!.invoice.lines, [{ amount: -18 }], db.settings)
+check('a discount reduces the taxable subtotal', discounted.subtotal, 150)
+check('tax is charged on the discounted subtotal', discounted.total, 172.5)
+
+const emptyDraft = buildInvoice(db, 'c1', '2026-05-01', '2026-05-31')
+check('a period with nothing billable produces no invoice', emptyDraft, null)
+
+// --- receivables ----------------------------------------------------------
+const inv = draft!.invoice
+inv.status = 'sent'
+inv.dueDate = addDays(today(), -45)
+db.invoices.push(inv)
+for (const id of draft!.attendanceIds) {
+  const rec = db.attendance.find(a => a.id === id)
+  if (rec) rec.invoiceId = inv.id
+}
+
+check('an unpaid invoice past its due date is overdue', isOverdue(inv), true)
+check('balance owing equals the total when nothing is paid', amountDue(inv), 193.2)
+
+inv.payments.push({ id: 'p1', date: today(), amount: 100, method: 'Bank', reference: '' })
+check('a part payment reduces the balance', amountDue(inv), 93.2)
+
+// A day recorded after the invoice was raised: still work in progress.
+db.attendance.push(record({ id: 'a4', date: '2026-03-05' }))
+
+const fin = summarise(db, today())
+check('outstanding picks up the unpaid balance', fin.outstanding, 93.2)
+check('the 60-day bucket catches a 45-day-old debt', fin.aging.d31to60, 93.2)
+check('the uninvoiced day is still counted as work in progress', fin.unbilled, 84)
+
+const voided = { ...inv, status: 'void' as const }
+check('a void invoice owes nothing', amountDue(voided), 0)
+
+if (failures > 0) throw new Error(`${failures} check(s) failed.`)
+console.log('\nAll checks passed.')
