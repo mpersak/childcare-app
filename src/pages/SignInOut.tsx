@@ -105,6 +105,9 @@ export default function SignInOut() {
         <SignaturePad
           title={`Sign ${pending.direction === 'in' ? 'in' : 'out'} ${childName(pendingChild)}`}
           subtitle="Parent or guardian signature"
+          people={pendingChild.guardians.map(g => ({
+            id: g.id, name: g.name, relationship: g.relationship,
+          }))}
           confirmLabel={pending.direction === 'in' ? 'Confirm sign in' : 'Confirm sign out'}
           onCancel={() => setPending(null)}
           onConfirm={sig => { void complete(sig) }}

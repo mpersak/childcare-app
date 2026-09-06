@@ -971,6 +971,30 @@ textarea.input { resize: vertical; }
   display: flex; flex-direction: column; gap: 8px;
 }
 
+
+/* ------------------------- who is signing (kiosk) ------------------------ */
+.sign-foot { flex-direction: column; align-items: stretch; gap: 10px; }
+.signer-picks { display: flex; gap: 8px; flex-wrap: wrap; }
+.signer-chip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  padding: 9px 16px; border-radius: var(--pill); cursor: pointer;
+  border: 2px solid var(--border-strong); background: var(--surface-1);
+  font: inherit; color: inherit; text-align: left; min-height: 46px;
+}
+.signer-chip strong { font-size: 14px; }
+.signer-chip small { font-size: 11px; color: var(--text-muted); }
+.signer-chip:hover { border-color: var(--accent); }
+.signer-chip.on { border-color: var(--accent); background: var(--accent-soft); }
+.signer-chip.on small { color: var(--accent); }
+.sign-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sign-actions .sign-name { flex: 1; min-width: 180px; }
+
+@media (max-width: 820px) {
+  .signer-chip { flex: 1 1 44%; }
+  .sign-actions { flex-direction: column; align-items: stretch; }
+  .sign-actions .btn { width: 100%; }
+}
+
 /* --------------------------------- print -------------------------------- */
 @media print {
   .sidebar, .page-head, .no-print, .tabs, .sign-overlay { display: none !important; }

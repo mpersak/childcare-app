@@ -7,10 +7,18 @@ import { useEffect, useRef, useState } from 'react'
  * The canvas is sized to its own box at device pixel ratio, otherwise the stroke
  * looks soft on a phone.
  */
-export function SignaturePad({ title, subtitle, confirmLabel, onCancel, onConfirm }: {
+export interface SignerOption {
+  id: string
+  name: string
+  relationship: string
+}
+
+export function SignaturePad({ title, subtitle, confirmLabel, people = [], onCancel, onConfirm }: {
   title: string
   subtitle?: string
   confirmLabel: string
+  /** The child's guardians, offered as one-tap choices instead of typing. */
+  people?: SignerOption[]
   onCancel(): void
   onConfirm(result: { dataUrl: string; name: string }): void
 }) {
@@ -18,7 +26,13 @@ export function SignaturePad({ title, subtitle, confirmLabel, onCancel, onConfir
   const drawing = useRef(false)
   const dirty = useRef(false)
   const [hasInk, setHasInk] = useState(false)
-  const [name, setName] = useState('')
+
+  const named = people.filter(p => p.name.trim())
+  // One guardian is almost always the person at the door, so save them the tap.
+  const [picked, setPicked] = useState<string>(() => (named.length === 1 ? named[0].id : ''))
+  const [other, setOther] = useState('')
+  const usingOther = picked === 'other' || named.length === 0
+  const name = usingOther ? other.trim() : (named.find(p => p.id === picked)?.name ?? '')
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -137,8 +151,8 @@ export function SignaturePad({ title, subtitle, confirmLabel, onCancel, onConfir
 
   const confirm = () => {
     const canvas = canvasRef.current
-    if (!canvas || !hasInk) return
-    onConfirm({ dataUrl: flatten(canvas), name: name.trim() })
+    if (!canvas || !hasInk || !name) return
+    onConfirm({ dataUrl: flatten(canvas), name })
   }
 
   return (
@@ -166,17 +180,49 @@ export function SignaturePad({ title, subtitle, confirmLabel, onCancel, onConfir
       </div>
 
       <footer className="sign-foot">
-        <input
-          className="input sign-name"
-          placeholder="Your name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          autoComplete="name"
-        />
-        <button className="btn" onClick={clear} disabled={!hasInk}>Clear</button>
-        <button className="btn primary" onClick={confirm} disabled={!hasInk || !name.trim()}>
-          {confirmLabel}
-        </button>
+        {named.length > 0 && (
+          <div className="signer-picks" role="radiogroup" aria-label="Who is signing">
+            {named.map(p => (
+              <button
+                key={p.id}
+                type="button"
+                role="radio"
+                aria-checked={picked === p.id}
+                className={picked === p.id ? 'signer-chip on' : 'signer-chip'}
+                onClick={() => setPicked(p.id)}
+              >
+                <strong>{p.name}</strong>
+                {p.relationship && <small>{p.relationship}</small>}
+              </button>
+            ))}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={picked === 'other'}
+              className={picked === 'other' ? 'signer-chip on' : 'signer-chip'}
+              onClick={() => setPicked('other')}
+            >
+              <strong>Someone else</strong>
+            </button>
+          </div>
+        )}
+
+        <div className="sign-actions">
+          {usingOther && (
+            <input
+              className="input sign-name"
+              placeholder="Name of the person signing"
+              value={other}
+              onChange={e => setOther(e.target.value)}
+              autoComplete="name"
+              autoFocus={named.length > 0}
+            />
+          )}
+          <button className="btn" onClick={clear} disabled={!hasInk}>Clear</button>
+          <button className="btn primary" onClick={confirm} disabled={!hasInk || !name}>
+            {confirmLabel}
+          </button>
+        </div>
       </footer>
     </div>
   )
