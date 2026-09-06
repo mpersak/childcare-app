@@ -201,9 +201,16 @@ export function buildDemoDatabase(): Database {
     }
   }
 
+  // Land it on a weekday: a weekend closure is never shown, so sample data on a
+  // Saturday would demonstrate the feature invisibly.
+  let closureDate = addDays(now, 21)
+  while (weekdayOf(closureDate) === 0 || weekdayOf(closureDate) === 6) {
+    closureDate = addDays(closureDate, 1)
+  }
+
   db.closures.push({
     id: uid('clo'),
-    date: addDays(now, 21),
+    date: closureDate,
     name: 'Staff training day',
     billable: false,
   })
