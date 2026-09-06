@@ -17,7 +17,7 @@ type View = 'day' | 'week' | 'month'
 export default function Calendar() {
   const { db } = useStore()
   const [params, setParams] = useSearchParams()
-  const view = (params.get('view') as View) || 'month'
+  const view = (params.get('view') as View) || 'week'
   const date = params.get('date') || today()
 
   const update = (patch: { view?: View; date?: string }) => setParams(prev => {
