@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore, childName } from '../lib/store'
-import { Card, Field, PageHead } from '../components/ui'
+import { ActionButton, Card, Field, PageHead } from '../components/ui'
 import { openDraft, trimBody } from '../lib/email'
 import { download, activitiesCSV } from '../lib/exporters'
 import { addDays, formatDate, startOfWeek, timeToMinutes, today } from '../lib/dates'
@@ -73,7 +73,7 @@ export default function ActivityReport() {
             </select>
           </Field>
           <span className="spacer" />
-          <button className="btn" onClick={() => window.print()}>Print / save PDF</button>
+          <ActionButton icon="🖨" label="Print / save PDF" onClick={() => window.print()} />
           <button className="btn" disabled={rows.length === 0}
                   onClick={() => download(`activities-${from}.csv`, activitiesCSV(db, from, to), 'text/csv')}>
             CSV

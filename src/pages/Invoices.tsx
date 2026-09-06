@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useStore, childName } from '../lib/store'
-import { Avatar, Badge, Card, EmptyState, Field, Modal, PageHead, Stat } from '../components/ui'
+import { ActionButton, Avatar, Badge, Card, EmptyState, Field, Modal, PageHead, Stat } from '../components/ui'
 import { amountDue, amountPaid, isOverdue, statusLabel } from '../lib/invoicing'
 import { calcBilling, scheduleFor } from '../lib/billing'
 import { formatMoney } from '../lib/money'
@@ -72,14 +72,10 @@ export default function Invoices() {
         subtitle={`${db.invoices.length} total`}
         actions={
           <>
-            <button className="btn" disabled={db.invoices.length === 0}
-                    onClick={() => download('invoices.csv', invoicesCSV(db), 'text/csv')}>
-              Export CSV
-            </button>
-            <button className="btn primary" disabled={db.children.length === 0}
-                    onClick={() => setGenerating(true)}>
-              Generate invoices
-            </button>
+            <ActionButton icon="⬇" label="Export CSV" disabled={db.invoices.length === 0}
+                          onClick={() => download('invoices.csv', invoicesCSV(db), 'text/csv')} />
+            <ActionButton icon="✚" label="Generate invoices" primary disabled={db.children.length === 0}
+                          onClick={() => setGenerating(true)} />
           </>
         }
       />

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useStore, childName } from '../lib/store'
-import { Avatar, Badge, Card, EmptyState, Field, Modal, PageHead } from '../components/ui'
+import { ActionButton, Avatar, Badge, Card, EmptyState, Field, Modal, PageHead } from '../components/ui'
 import { formatDate, today } from '../lib/dates'
 import { download, notesCSV } from '../lib/exporters'
 import type { NoteCategory } from '../types'
@@ -51,13 +51,9 @@ export default function Notes() {
         subtitle={`${notes.length} shown · ${db.notes.filter(n => n.flagged).length} flagged`}
         actions={
           <>
-            <button className="btn" disabled={db.notes.length === 0}
-                    onClick={() => download('notes.csv', notesCSV(db), 'text/csv')}>
-              Export CSV
-            </button>
-            <button className="btn primary" disabled={db.children.length === 0} onClick={openAdd}>
-              Add note
-            </button>
+            <ActionButton icon="⬇" label="Export CSV" disabled={db.notes.length === 0}
+                          onClick={() => download('notes.csv', notesCSV(db), 'text/csv')} />
+            <ActionButton icon="✚" label="Add note" primary disabled={db.children.length === 0} onClick={openAdd} />
           </>
         }
       />

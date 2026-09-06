@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useStore } from '../lib/store'
 import { formatDate, today } from '../lib/dates'
 import { amountDue, isOverdue } from '../lib/invoicing'
@@ -19,6 +20,13 @@ const NAV = [
 
 export default function Layout() {
   const { db } = useStore()
+  const [open, setOpen] = useState(false)
+  const { pathname } = useLocation()
+
+  // Close the drawer whenever navigation happens, or it covers the page you asked for.
+  useEffect(() => { setOpen(false) }, [pathname])
+
+  const current = NAV.find(n => (n.end ? pathname === n.to : pathname.startsWith(n.to)))
 
   const overdueCount = db.invoices.filter(i => isOverdue(i)).length
   const openDrafts = db.invoices.filter(i => i.status === 'draft').length
@@ -33,7 +41,19 @@ export default function Layout() {
   }
 
   return (
-    <div className="shell">
+    <div className={open ? 'shell nav-open' : 'shell'}>
+      <header className="topbar">
+        <button className="icon-btn burger" onClick={() => setOpen(!open)}
+                aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open}>
+          {open ? '✕' : '☰'}
+        </button>
+        <span className="topbar-title">
+          <i aria-hidden="true">{current?.icon}</i>{current?.label ?? db.settings.businessName}
+        </span>
+      </header>
+
+      {open && <button className="nav-scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
+
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark">{db.settings.logoText || 'CC'}</span>
@@ -68,7 +88,7 @@ export default function Layout() {
         </div>
       </aside>
 
-      <main className="content">
+      <main className="content" onClick={() => open && setOpen(false)}>
         <Outlet />
       </main>
     </div>

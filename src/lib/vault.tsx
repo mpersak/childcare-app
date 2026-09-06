@@ -11,6 +11,10 @@ import {
 import {
   ConflictError, checkAccess, getFile, putFile, type GithubConfig,
 } from './github'
+import {
+  createPinWrapper, passphraseFromPin, forgetDeviceKey, MAX_PIN_ATTEMPTS,
+  type PinWrapper,
+} from './pinunlock'
 
 /**
  * The vault owns the encryption key and every read and write of persisted data.
@@ -33,6 +37,8 @@ interface VaultRecord {
   lastSyncAt: string | null
   /** Signature refs captured but not yet uploaded. */
   pending: string[]
+  /** Present when PIN unlock has been switched on for this device. */
+  pin?: PinWrapper | null
 }
 
 export type VaultStatus = 'new' | 'locked' | 'unlocked'
@@ -55,6 +61,15 @@ interface VaultApi {
   changePassphrase(current: string, next: string): Promise<void>
   /** Confirms a passphrase without changing state — used to leave parent mode. */
   verify(passphrase: string): Promise<boolean>
+
+  /** True when this device can be opened with a PIN. */
+  pinUnlockReady: boolean
+  /** Attempts left before the PIN wrapper is destroyed. */
+  pinAttemptsLeft: number
+  /** Switches PIN unlock on. Needs the passphrase once, to wrap it. */
+  enablePinUnlock(passphrase: string, pin: string): Promise<void>
+  disablePinUnlock(): Promise<void>
+  unlockWithPin(pin: string): Promise<void>
 
   persist(db: Database): void
   replace(db: Database): void
@@ -202,6 +217,53 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     setSyncState('idle')
     setStatus('unlocked')
   }, [commit])
+
+  /**
+   * PIN unlock. The wrapper only ever yields the passphrase, which then goes
+   * through the normal unlock — so there is no second way into the data, just a
+   * shorter way to supply the same secret.
+   */
+  const enablePinUnlock = useCallback(async (passphrase: string, pin: string) => {
+    const v = readVault()
+    if (!v?.doc) throw new Error('There is no vault on this device yet.')
+    // Confirm the passphrase before wrapping it, or we would store a wrong one.
+    const key = await deriveKey(passphrase, saltOf(v.doc), v.doc.iter)
+    try {
+      await decryptString(key, v.doc)
+    } catch {
+      throw new Error('That passphrase is wrong, so PIN unlock was not set up.')
+    }
+    const wrapper = await createPinWrapper(passphrase, pin)
+    commit({ ...(recordRef.current ?? v), pin: wrapper })
+  }, [commit])
+
+  const disablePinUnlock = useCallback(async () => {
+    const cur = recordRef.current ?? readVault()
+    if (cur) commit({ ...cur, pin: null })
+    await forgetDeviceKey()
+  }, [commit])
+
+  const unlockWithPin = useCallback(async (pin: string) => {
+    const v = readVault()
+    if (!v?.pin) throw new Error('PIN unlock is not set up on this device.')
+
+    const passphrase = await passphraseFromPin(v.pin, pin)
+    if (!passphrase) {
+      const attempts = v.pin.attempts + 1
+      if (attempts >= MAX_PIN_ATTEMPTS) {
+        // Too many tries: destroy the shortcut. The passphrase still works.
+        commit({ ...v, pin: null })
+        await forgetDeviceKey()
+        throw new Error('Too many wrong PINs. PIN unlock has been switched off — use the passphrase.')
+      }
+      commit({ ...v, pin: { ...v.pin, attempts } })
+      throw new Error(`Wrong PIN. ${MAX_PIN_ATTEMPTS - attempts} attempts left.`)
+    }
+
+    await unlock(passphrase)
+    const after = recordRef.current
+    if (after?.pin && after.pin.attempts !== 0) commit({ ...after, pin: { ...after.pin, attempts: 0 } })
+  }, [commit, unlock])
 
   const lock = useCallback(() => {
     keyRef.current = null
@@ -466,6 +528,9 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     pendingCount: record?.pending.length ?? 0,
     github,
     create, unlock, restoreFromGithub, lock, changePassphrase, verify,
+    pinUnlockReady: !!record?.pin,
+    pinAttemptsLeft: record?.pin ? MAX_PIN_ATTEMPTS - record.pin.attempts : 0,
+    enablePinUnlock, disablePinUnlock, unlockWithPin,
     persist, replace,
     connectGithub, disconnectGithub, syncNow, pullRemote, resolveConflict,
     saveSignature, loadSignature,
@@ -473,7 +538,8 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     destroy,
   }), [
     status, db, syncState, syncMessage, record, github,
-    create, unlock, restoreFromGithub, lock, changePassphrase, verify, persist, replace,
+    create, unlock, restoreFromGithub, lock, changePassphrase, verify,
+    enablePinUnlock, disablePinUnlock, unlockWithPin, persist, replace,
     connectGithub, disconnectGithub, syncNow, pullRemote, resolveConflict,
     saveSignature, loadSignature, destroy,
   ])

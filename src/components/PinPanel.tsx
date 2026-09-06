@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useStore } from '../lib/store'
 import { Card, ConfirmButton, Field } from './ui'
 import { hashPin, randomBytes, toBase64 } from '../lib/crypto'
+import { useVault } from '../lib/vault'
+import { MAX_PIN_ATTEMPTS, pinLooksValid } from '../lib/pinunlock'
 
 /**
  * Sets the short PIN that unlocks teacher mode on the door tablet.
@@ -13,10 +15,27 @@ import { hashPin, randomBytes, toBase64 } from '../lib/crypto'
 export function PinPanel() {
   const { db, actions } = useStore()
   const s = db.settings
+  const vault = useVault()
   const [pin, setPin] = useState('')
   const [confirm, setConfirm] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [unlockPass, setUnlockPass] = useState('')
+  const [unlockPin, setUnlockPin] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const enableUnlock = async () => {
+    setError(''); setMessage(''); setBusy(true)
+    try {
+      await vault.enablePinUnlock(unlockPass, unlockPin)
+      setUnlockPass(''); setUnlockPin('')
+      setMessage('PIN unlock is on for this device.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not set up PIN unlock.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const save = async () => {
     setError(''); setMessage('')
@@ -63,6 +82,48 @@ export function PinPanel() {
 
       {error && <p className="lock-error">{error}</p>}
       {message && <p className="notice">{message}</p>}
+
+      <div className="unlock-block">
+        <strong>Open the app with this PIN too</strong>
+        <p className="muted small">
+          Wraps your passphrase behind the PIN <em>and</em> a key the browser keeps on this
+          device and will not reveal, so the stored data cannot be attacked by guessing four
+          digits against a copied file. It is still weaker than the passphrase — after{' '}
+          {MAX_PIN_ATTEMPTS} wrong tries it switches itself off. Set it up per device.
+        </p>
+
+        {vault.pinUnlockReady ? (
+          <ConfirmButton
+            className="btn"
+            confirmLabel="Turn PIN unlock off?"
+            onConfirm={() => {
+              void vault.disablePinUnlock()
+              setMessage('PIN unlock switched off. This device now needs the passphrase.')
+            }}
+          >
+            PIN unlock is on — turn it off
+          </ConfirmButton>
+        ) : (
+          <div className="row gap wrap">
+            <input
+              className="input tight" type="password" placeholder="Passphrase"
+              autoComplete="current-password"
+              value={unlockPass} onChange={e => setUnlockPass(e.target.value)}
+            />
+            <input
+              className="input tight" type="password" placeholder="PIN" inputMode="numeric"
+              value={unlockPin} onChange={e => setUnlockPin(e.target.value.replace(/\D/g, ''))}
+            />
+            <button
+              className="btn"
+              disabled={busy || !unlockPass || !pinLooksValid(unlockPin)}
+              onClick={() => void enableUnlock()}
+            >
+              {busy ? 'Setting up…' : 'Enable PIN unlock'}
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="row gap wrap">
         <button className="btn primary" disabled={!pin || !confirm} onClick={() => void save()}>

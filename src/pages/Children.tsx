@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useStore, childName } from '../lib/store'
-import { Avatar, Badge, Card, EmptyState, Field, Modal, PageHead } from '../components/ui'
+import { ActionButton, Avatar, Badge, Card, EmptyState, Field, Modal, PageHead } from '../components/ui'
 import { rateForChild, scheduledMinutes } from '../lib/billing'
 import { formatMoney } from '../lib/money'
 import { ageFrom, formatHours, today, WEEKDAYS_SHORT, WORKING_WEEKDAYS } from '../lib/dates'
@@ -46,7 +46,7 @@ export default function Children() {
       <PageHead
         title="Children"
         subtitle={`${db.children.filter(c => c.status === 'active').length} enrolled`}
-        actions={<button className="btn primary" onClick={() => setAdding(true)}>Add child</button>}
+        actions={<ActionButton icon="✚" label="Add child" primary onClick={() => setAdding(true)} />}
       />
 
       <Card>
@@ -61,7 +61,7 @@ export default function Children() {
 
         {list.length === 0 ? (
           <EmptyState title="No children match"
-                      action={<button className="btn primary" onClick={() => setAdding(true)}>Add child</button>}>
+                      action={<ActionButton icon="✚" label="Add child" primary onClick={() => setAdding(true)} />}>
             Add a child, then give them a weekly schedule so attendance and invoices can follow.
           </EmptyState>
         ) : (

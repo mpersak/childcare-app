@@ -161,6 +161,33 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
   return <div className="toolbar">{children}</div>
 }
 
+/**
+ * An action that shows its label on a roomy screen and collapses to just the
+ * icon on a phone. The label stays in the accessible name and the tooltip, so
+ * nothing is lost when the text is hidden.
+ */
+export function ActionButton({ icon, label, primary, onClick, disabled, title }: {
+  icon: string
+  label: string
+  primary?: boolean
+  onClick(): void
+  disabled?: boolean
+  title?: string
+}) {
+  return (
+    <button
+      className={`btn has-icon ${primary ? 'primary' : ''}`}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={title ?? label}
+    >
+      <span aria-hidden="true">{icon}</span>
+      <span className="btn-label">{label}</span>
+    </button>
+  )
+}
+
 export function PageHead({ title, subtitle, actions }: {
   title: string
   subtitle?: React.ReactNode

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore, childName } from '../lib/store'
 import { useVault } from '../lib/vault'
-import { Card, Field, PageHead } from '../components/ui'
+import { ActionButton, Card, Field, PageHead } from '../components/ui'
 import { scheduleFor } from '../lib/billing'
 import { openDraft, trimBody } from '../lib/email'
 import { download, toCSV } from '../lib/exporters'
@@ -142,11 +142,9 @@ export default function SignSheet() {
             Blank sheet for hand signing
           </label>
           <span className="spacer" />
-          <button className="btn" onClick={() => window.print()}>Print / save PDF</button>
-          <button className="btn" onClick={exportCsv}>CSV</button>
-          <button className="btn primary" disabled={missingEmail} onClick={emailSheet}>
-            Email to coordinator
-          </button>
+          <ActionButton icon="🖨" label="Print / save PDF" onClick={() => window.print()} />
+          <ActionButton icon="⬇" label="CSV" onClick={exportCsv} />
+          <ActionButton icon="✉" label="Email to coordinator" primary disabled={missingEmail} onClick={emailSheet} />
         </div>
         {missingEmail && (
           <p className="muted small">

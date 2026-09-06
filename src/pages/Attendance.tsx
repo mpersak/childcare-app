@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useStore, childName } from '../lib/store'
 import { useVault } from '../lib/vault'
-import { Avatar, Badge, Card, PageHead } from '../components/ui'
+import { ActionButton, Avatar, Badge, Card, PageHead } from '../components/ui'
 import { calcBilling, scheduleFor } from '../lib/billing'
 import { formatMoney } from '../lib/money'
 import { addDays, formatDate, formatHours, today, WEEKDAYS, WORKING_DAYS_PER_WEEK } from '../lib/dates'
@@ -76,9 +76,7 @@ export default function Attendance() {
               <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} />
               Show everyone
             </label>
-            <button className="btn primary" onClick={() => actions.fillFromSchedule(date)}>
-              Fill from schedule
-            </button>
+            <ActionButton icon="↻" label="Fill from schedule" primary onClick={() => actions.fillFromSchedule(date)} />
           </>
         }
       >

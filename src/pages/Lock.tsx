@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useVault } from '../lib/vault'
 import { normaliseRepo, type GithubConfig } from '../lib/github'
 import { Field } from '../components/ui'
+import { PinPad } from '../components/PinPad'
 
 /**
  * The way in. There is no server and no reset link, so the copy here is blunt
@@ -10,7 +11,7 @@ import { Field } from '../components/ui'
 export default function Lock() {
   const vault = useVault()
   const creating = vault.status === 'new'
-  const [mode, setMode] = useState<'default' | 'restore'>('default')
+  const [mode, setMode] = useState<'default' | 'restore' | 'passphrase'>('default')
 
   const [passphrase, setPassphrase] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -42,6 +43,11 @@ export default function Lock() {
   }
 
   if (mode === 'restore') return <Restore onBack={() => setMode('default')} />
+
+  // A vault that has PIN unlock set up opens with the keypad by default.
+  if (!creating && vault.pinUnlockReady && mode === 'default') {
+    return <PinUnlock onUsePassphrase={() => setMode('passphrase')} />
+  }
 
   return (
     <div className="lock-screen">
@@ -185,6 +191,45 @@ function Restore({ onBack }: { onBack(): void }) {
         </button>
         <button type="button" className="link" onClick={onBack}>Back</button>
       </form>
+    </div>
+  )
+}
+
+/** Keypad entry for a device where PIN unlock has been set up. */
+function PinUnlock({ onUsePassphrase }: { onUsePassphrase(): void }) {
+  const vault = useVault()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async (pin: string) => {
+    setBusy(true)
+    setError('')
+    try {
+      await vault.unlockWithPin(pin)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not unlock.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="lock-screen">
+      <div className="lock-card">
+        <div className="lock-mark">CC</div>
+        <h1>Enter PIN</h1>
+        <p className="muted">
+          {vault.pinAttemptsLeft <= 2
+            ? `${vault.pinAttemptsLeft} attempts left before PIN unlock switches off.`
+            : 'Or use the full passphrase.'}
+        </p>
+
+        <PinPad onSubmit={pin => { void submit(pin) }} busy={busy} error={error} />
+
+        <button type="button" className="link" onClick={onUsePassphrase}>
+          Use the passphrase instead
+        </button>
+      </div>
     </div>
   )
 }
