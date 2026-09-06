@@ -233,43 +233,45 @@ function ScheduleTab({ childId }: { childId: string }) {
           absent days that you still bill.
         </p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr><th>Day</th><th>From</th><th>To</th><th className="num">Hours</th>
-                <th>Starts</th><th>Ends</th><th>Active</th><th /></tr>
-          </thead>
-          <tbody>
-            {blocks.map(b => (
-              <tr key={b.id} className={b.active ? undefined : 'row-muted'}>
-                <td>{WEEKDAYS[b.weekday]}</td>
-                <td>
-                  <input className="input tight" type="time" value={b.start}
-                         onChange={e => actions.updateSchedule(b.id, { start: e.target.value })} />
-                </td>
-                <td>
-                  <input className="input tight" type="time" value={b.end}
-                         onChange={e => actions.updateSchedule(b.id, { end: e.target.value })} />
-                </td>
-                <td className="num">{formatHours(scheduledMinutes([b]) / 60)}</td>
-                <td>
-                  <input className="input tight" type="date" value={b.effectiveFrom}
-                         onChange={e => actions.updateSchedule(b.id, { effectiveFrom: e.target.value })} />
-                </td>
-                <td>
-                  <input className="input tight" type="date" value={b.effectiveTo}
-                         onChange={e => actions.updateSchedule(b.id, { effectiveTo: e.target.value })} />
-                </td>
-                <td>
+        /* Blocks rather than table rows: this is an editing surface, and on a
+           phone a row of eight inputs has to reflow rather than scroll sideways. */
+        <ul className="sched-list">
+          {blocks.map(b => (
+            <li key={b.id} className={b.active ? 'sched-block' : 'sched-block off'}>
+              <div className="sched-head">
+                <strong>{WEEKDAYS[b.weekday]}</strong>
+                <span className="muted small">{formatHours(scheduledMinutes([b]) / 60)}</span>
+                <span className="spacer" />
+                <label className="check">
                   <input type="checkbox" checked={b.active}
                          onChange={e => actions.updateSchedule(b.id, { active: e.target.checked })} />
-                </td>
-                <td className="right">
-                  <button className="btn small danger" onClick={() => actions.deleteSchedule(b.id)}>Remove</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  Active
+                </label>
+                <button className="btn small danger"
+                        onClick={() => actions.deleteSchedule(b.id)}>Remove</button>
+              </div>
+
+              <div className="sched-fields">
+                <Field label="From">
+                  <input className="input" type="time" value={b.start}
+                         onChange={e => actions.updateSchedule(b.id, { start: e.target.value })} />
+                </Field>
+                <Field label="To">
+                  <input className="input" type="time" value={b.end}
+                         onChange={e => actions.updateSchedule(b.id, { end: e.target.value })} />
+                </Field>
+                <Field label="Starts" hint="First week this applies">
+                  <input className="input" type="date" value={b.effectiveFrom}
+                         onChange={e => actions.updateSchedule(b.id, { effectiveFrom: e.target.value })} />
+                </Field>
+                <Field label="Ends" hint="Blank means ongoing">
+                  <input className="input" type="date" value={b.effectiveTo}
+                         onChange={e => actions.updateSchedule(b.id, { effectiveTo: e.target.value })} />
+                </Field>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   )
