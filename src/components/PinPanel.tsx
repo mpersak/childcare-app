@@ -28,8 +28,21 @@ export function PinPanel() {
     setError(''); setMessage(''); setBusy(true)
     try {
       await vault.enablePinUnlock(unlockPass, unlockPin)
+      // One PIN is the point of the exercise: if teacher mode has none yet, use
+      // the same digits, so nothing still falls back to the full passphrase.
+      let alsoTeacher = false
+      if (!s.teacherPinHash) {
+        const salt = randomBytes(16)
+        actions.updateSettings({
+          teacherPinHash: await hashPin(unlockPin, salt),
+          teacherPinSalt: toBase64(salt),
+        })
+        alsoTeacher = true
+      }
       setUnlockPass(''); setUnlockPin('')
-      setMessage('PIN unlock is on for this device.')
+      setMessage(alsoTeacher
+        ? 'PIN unlock is on for this device, and the same PIN now opens teacher mode.'
+        : 'PIN unlock is on for this device.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not set up PIN unlock.')
     } finally {
