@@ -1038,6 +1038,15 @@ textarea.input { resize: vertical; }
 .wk-block.away em { text-decoration: line-through; }
 .wk-block.away small { text-transform: capitalize; font-weight: 700; }
 
+
+/* A service closure belongs in the day header, where a booking cannot cover it. */
+.wk-closed-tag {
+  display: inline-block; margin-top: 2px; padding: 0 7px; border-radius: var(--pill);
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--serious); border: 1px solid var(--serious);
+}
+.topbar-parent { margin-left: auto; order: 3; }
+
 /* --------------------------------- print -------------------------------- */
 @media print {
   .sidebar, .page-head, .no-print, .tabs, .sign-overlay { display: none !important; }

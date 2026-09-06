@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useStore } from '../lib/store'
 import { formatDate, today } from '../lib/dates'
 import { amountDue, isOverdue } from '../lib/invoicing'
+import { useModeSwitch } from '../App'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: '🏠', end: true },
@@ -21,6 +22,7 @@ const NAV = [
 export default function Layout() {
   const { db } = useStore()
   const [open, setOpen] = useState(false)
+  const modeSwitch = useModeSwitch()
   const { pathname } = useLocation()
 
   // Close the drawer whenever navigation happens, or it covers the page you asked for.
@@ -47,6 +49,10 @@ export default function Layout() {
                 aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open}>
           {open ? '✕' : '☰'}
         </button>
+        {modeSwitch && (
+          <button className="btn small topbar-parent" onClick={modeSwitch.toParent}
+                  title="Hand the device to parents">👋</button>
+        )}
         <span className="topbar-title">
           <i aria-hidden="true">{current?.icon}</i>{current?.label ?? db.settings.businessName}
         </span>
@@ -77,6 +83,11 @@ export default function Layout() {
         </nav>
 
         <div className="sidebar-foot">
+          {modeSwitch && (
+            <button className="btn small" onClick={modeSwitch.toParent}>
+              👋 Parent mode
+            </button>
+          )}
           <span className="muted">
             {db.children.filter(c => c.status === 'active').length} enrolled
           </span>

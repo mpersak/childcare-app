@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import { StoreProvider, useStore } from './lib/store'
@@ -64,11 +64,26 @@ function useIdleReturn(active: boolean, minutes: number, onIdle: () => void) {
   }, [active, minutes, onIdle])
 }
 
+/**
+ * Lets anything inside the teacher app hand the device back to the door without
+ * waiting for the idle timer to do it.
+ */
+const ModeCtx = createContext<{ toParent(): void } | null>(null)
+
+export function useModeSwitch() {
+  return useContext(ModeCtx)
+}
+
 /** Wraps the teacher app so the idle timer can read settings from the store. */
 function TeacherWithIdle({ onIdle }: { onIdle(): void }) {
   const { db } = useStore()
   useIdleReturn(true, db.settings.parentIdleMinutes, onIdle)
-  return <TeacherShell />
+  const value = useMemo(() => ({ toParent: onIdle }), [onIdle])
+  return (
+    <ModeCtx.Provider value={value}>
+      <TeacherShell />
+    </ModeCtx.Provider>
+  )
 }
 
 /**

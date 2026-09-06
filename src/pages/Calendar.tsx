@@ -262,13 +262,16 @@ function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
               <button className="wk-daylabel" onClick={() => onPick(d)}>
                 <span className="muted small">{WEEKDAYS_SHORT[fromISODate(d).getDay()]}</span>
                 <strong>{Number(d.slice(8))}</strong>
+                {/* In the header, where bookings cannot paint over it. */}
+                {closed && <span className="wk-closed-tag" title={closed.name}>Closed</span>}
               </button>
 
               <div className={`wk-body ${closed ? 'is-closed' : ''}`}>
                 {hourTicks(win.from, win.to).map(t => (
                   <span key={t} className="wk-line" style={{ top: `${top(t)}%` }} />
                 ))}
-                {closed && <span className="wk-closed">{closed.name}</span>}
+                {/* The centred label only helps on an otherwise empty column. */}
+                {closed && items.length === 0 && <span className="wk-closed">{closed.name}</span>}
 
                 {placed.map(({ item, lane }, i) => {
                   const block = item as TimelineItem & { away: boolean; reason: string }
