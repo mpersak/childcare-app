@@ -26,6 +26,7 @@ export function SignaturePad({ title, subtitle, confirmLabel, people = [], onCan
   const drawing = useRef(false)
   const dirty = useRef(false)
   const [hasInk, setHasInk] = useState(false)
+  const [problem, setProblem] = useState('')
 
   const named = people.filter(p => p.name.trim())
   // One guardian is almost always the person at the door, so save them the tap.
@@ -40,9 +41,14 @@ export function SignaturePad({ title, subtitle, confirmLabel, people = [], onCan
 
     const setup = () => {
       const rect = canvas.getBoundingClientRect()
-      const dpr = window.devicePixelRatio || 1
+      // Before layout settles the box can measure zero. Sizing the canvas to
+      // that leaves a 0x0 bitmap that silently swallows the signature, so wait
+      // for a real measurement — the observer below calls back when there is one.
+      if (rect.width === 0 || rect.height === 0) return
       // Redrawing at a new size clears the canvas, so only resize before any ink.
       if (dirty.current) return
+
+      const dpr = window.devicePixelRatio || 1
       canvas.width = Math.round(rect.width * dpr)
       canvas.height = Math.round(rect.height * dpr)
       const ctx = canvas.getContext('2d')
@@ -55,10 +61,12 @@ export function SignaturePad({ title, subtitle, confirmLabel, people = [], onCan
     }
 
     setup()
-    window.addEventListener('resize', setup)
+    // Catches the first real layout, and a tablet being rotated.
+    const observer = new ResizeObserver(setup)
+    observer.observe(canvas)
     window.addEventListener('orientationchange', setup)
     return () => {
-      window.removeEventListener('resize', setup)
+      observer.disconnect()
       window.removeEventListener('orientationchange', setup)
     }
   }, [])
@@ -104,6 +112,7 @@ export function SignaturePad({ title, subtitle, confirmLabel, people = [], onCan
     ctx.restore()
     dirty.current = false
     setHasInk(false)
+    setProblem('')
   }
 
   /**
@@ -112,8 +121,9 @@ export function SignaturePad({ title, subtitle, confirmLabel, people = [], onCan
    */
   const flatten = (canvas: HTMLCanvasElement): string => {
     const ctx = canvas.getContext('2d')
-    if (!ctx) return canvas.toDataURL('image/png')
     const { width, height } = canvas
+    // A zero-sized bitmap would throw out of getImageData and lose the signature.
+    if (!ctx || width === 0 || height === 0) return ''
     const { data } = ctx.getImageData(0, 0, width, height)
 
     let minX = width, minY = height, maxX = -1, maxY = -1
@@ -152,7 +162,13 @@ export function SignaturePad({ title, subtitle, confirmLabel, people = [], onCan
   const confirm = () => {
     const canvas = canvasRef.current
     if (!canvas || !hasInk || !name) return
-    onConfirm({ dataUrl: flatten(canvas), name })
+    const dataUrl = flatten(canvas)
+    if (!dataUrl) {
+      // Better to say so than to record a sign-in with no signature behind it.
+      setProblem('The signature could not be captured. Please sign again.')
+      return
+    }
+    onConfirm({ dataUrl, name })
   }
 
   return (
@@ -206,6 +222,8 @@ export function SignaturePad({ title, subtitle, confirmLabel, people = [], onCan
             </button>
           </div>
         )}
+
+        {problem && <p className="lock-error">{problem}</p>}
 
         <div className="sign-actions">
           {usingOther && (
