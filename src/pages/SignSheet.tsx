@@ -48,20 +48,27 @@ export default function SignSheet() {
       let no = 0
       const forDay = db.children
         .filter(c => c.status === 'active')
-        .map(child => ({ child, blocks: scheduleFor(db.schedules, child.id, date) }))
-        .filter(x => x.blocks.length > 0)
-        .sort((a, b) => a.blocks[0].start.localeCompare(b.blocks[0].start))
+        .map(child => ({
+          child,
+          blocks: scheduleFor(db.schedules, child.id, date),
+          rec: db.attendance.find(a => a.childId === child.id && a.date === date),
+        }))
+        // A child who was booked, or who turned up anyway. Listing only the
+        // booked ones would leave a signed-in drop-in off the sheet entirely.
+        .filter(x => x.blocks.length > 0 || x.rec)
+        .sort((a, b) =>
+          (a.blocks[0]?.start ?? a.rec?.checkIn ?? '99:99')
+            .localeCompare(b.blocks[0]?.start ?? b.rec?.checkIn ?? '99:99'))
 
-      for (const { child, blocks } of forDay) {
-        const rec = db.attendance.find(a => a.childId === child.id && a.date === date)
+      for (const { child, blocks, rec } of forDay) {
         no++
         out.push({
           date,
           no,
           childId: child.id,
           name: childName(child),
-          bookedFrom: blocks[0].start,
-          bookedTo: blocks[blocks.length - 1].end,
+          bookedFrom: blocks[0]?.start ?? '',
+          bookedTo: blocks[blocks.length - 1]?.end ?? '',
           // Prefer the time a guardian actually signed. Auto check-in fills
           // checkIn/checkOut from the booking, which is right for billing but
           // would misreport arrival on a sheet the coordinator reads.
@@ -201,7 +208,7 @@ export default function SignSheet() {
                   {r.status && <em className="sheet-status">{r.status}</em>}
                 </td>
                 <td />
-                <td>{r.bookedFrom}</td>
+                <td>{r.bookedFrom || <em className="sheet-status">drop-in</em>}</td>
                 <td>{r.arrived}</td>
                 <td className="sheet-sig">
                   {r.status
@@ -210,7 +217,7 @@ export default function SignSheet() {
                       ? <img src={sigs[r.signInRef]} alt="" />
                       : null}
                 </td>
-                <td>{r.bookedTo}</td>
+                <td>{r.bookedTo || ''}</td>
                 <td>{r.collected}</td>
                 <td className="sheet-sig">
                   {r.status
