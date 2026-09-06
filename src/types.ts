@@ -78,9 +78,36 @@ export interface AttendanceRecord {
   /** Set once the record has been pulled onto an invoice; blocks double billing. */
   invoiceId: string | null
   createdAt: ISOTimestamp
+  /** When a holiday was declared, for working out whether notice was given. */
+  noticeDate?: ISODate
   /** Optional: records created before signatures existed simply have none. */
   signIn?: SignatureRecord | null
   signOut?: SignatureRecord | null
+}
+
+/** A nappy change or a sleep, logged through the day. */
+export type NappyKind = 'dry' | 'wet' | 'stools' | 'wet+stools'
+
+/** A safe-sleep check. `done` stays false until someone confirms it happened. */
+export interface SleepCheck {
+  at: string
+  done: boolean
+  by: string
+}
+
+export interface Activity {
+  id: string
+  childId: string
+  date: ISODate
+  kind: 'nappy' | 'sleep'
+  /** Start time, 24h HH:MM. */
+  time: string
+  /** Sleep only. */
+  endTime?: string
+  nappy?: NappyKind
+  checks?: SleepCheck[]
+  note: string
+  createdAt: ISOTimestamp
 }
 
 export type NoteCategory =
@@ -172,8 +199,39 @@ export interface Settings {
   minimumHours: number
   /** Cap on billable hours in a single day. 0 disables. */
   dailyCapHours: number
-  /** Charged per minute past the booked end time. 0 disables. */
-  lateFeePerMinute: number
+
+  /**
+   * What the day is billed on.
+   * 'schedule' — the booking is the contract, so the booked hours are charged
+   *   whether or not anyone touched the tablet. Late collection is charged on top.
+   * 'actual'   — charge the clock time that was recorded.
+   */
+  billBasis: 'schedule' | 'actual'
+  /** Minutes past the booked finish that are not charged. */
+  lateGraceMinutes: number
+  /** Each started block beyond the grace costs `lateBlockFee`. */
+  lateBlockMinutes: number
+  lateBlockFee: number
+
+  /** Days of notice needed for a holiday to attract the discount. */
+  holidayNoticeDays: number
+  /** Multiplier for a holiday with enough notice. 0.5 = half price. */
+  holidayNoticedRate: number
+  /** Multiplier for a holiday declared too late. */
+  holidayShortNoticeRate: number
+  /** Multiplier for a sick day. */
+  sickRate: number
+  /** Multiplier for an absence that is neither sick nor a declared holiday. */
+  absentRate: number
+
+  /** Create today's attendance from the schedule automatically. */
+  autoCheckIn: boolean
+  /** Minutes between safe-sleep checks generated with a sleep. 0 disables. */
+  sleepCheckMinutes: number
+  /** Default length of a sleep block, in minutes. */
+  sleepBlockMinutes: number
+  /** Where the activity report is emailed. */
+  activityEmail: string
 
   taxEnabled: boolean
   taxName: string
@@ -219,6 +277,7 @@ export interface Database {
   schedules: ScheduleBlock[]
   attendance: AttendanceRecord[]
   notes: KidNote[]
+  activities: Activity[]
   invoices: Invoice[]
   closures: Closure[]
   updatedAt: ISOTimestamp

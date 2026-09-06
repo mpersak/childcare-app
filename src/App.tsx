@@ -1,15 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import { StoreProvider, useStore } from './lib/store'
 import { VaultProvider, useVault } from './lib/vault'
+import { today } from './lib/dates'
 
 import Lock from './pages/Lock'
-import { ModeSelect, ExitParentMode } from './pages/ModeSelect'
+import { ExitParentMode } from './pages/ModeSelect'
 import Dashboard from './pages/Dashboard'
 import Attendance from './pages/Attendance'
 import SignInOut from './pages/SignInOut'
 import SignSheet from './pages/SignSheet'
+import Activities from './pages/Activities'
+import ActivityReport from './pages/ActivityReport'
 import Calendar from './pages/Calendar'
 import Children from './pages/Children'
 import ChildDetail from './pages/ChildDetail'
@@ -19,7 +22,7 @@ import InvoiceDetail from './pages/InvoiceDetail'
 import Finance from './pages/Finance'
 import SettingsPage from './pages/Settings'
 
-type Mode = 'choose' | 'parent' | 'teacher'
+type Mode = 'parent' | 'teacher'
 
 const MODE_KEY = 'childcare.mode'
 
@@ -69,6 +72,26 @@ function TeacherWithIdle({ onIdle }: { onIdle(): void }) {
 }
 
 /**
+ * Opens today's attendance from the booking, so a day is billed correctly even
+ * if nobody touches the tablet. Existing rows are never overwritten, so an
+ * absence marked earlier stands.
+ */
+function AutoCheckIn() {
+  const { db, actions } = useStore()
+  const doneFor = useRef('')
+
+  useEffect(() => {
+    if (!db.settings.autoCheckIn) return
+    const date = today()
+    if (doneFor.current === date) return
+    doneFor.current = date
+    actions.fillFromSchedule(date)
+  }, [db.settings.autoCheckIn, actions])
+
+  return null
+}
+
+/**
  * HashRouter rather than BrowserRouter: GitHub Pages serves static files only,
  * so a deep link like /invoices/x would 404 on refresh under path routing.
  */
@@ -81,6 +104,8 @@ function TeacherShell() {
           <Route path="attendance" element={<Attendance />} />
           <Route path="signin" element={<SignInOut />} />
           <Route path="sheet" element={<SignSheet />} />
+          <Route path="activities" element={<Activities />} />
+          <Route path="activity-report" element={<ActivityReport />} />
           <Route path="calendar" element={<Calendar />} />
           <Route path="children" element={<Children />} />
           <Route path="children/:id" element={<ChildDetail />} />
@@ -98,9 +123,10 @@ function TeacherShell() {
 
 function Shell() {
   const vault = useVault()
-  // Kept for the session only: closing the tab returns to the chooser.
+  // Kept for the session only.
+  // The door tablet is the common case, so that is what opening the app gives you.
   const [mode, setMode] = useState<Mode>(
-    () => (sessionStorage.getItem(MODE_KEY) as Mode) || 'choose',
+    () => (sessionStorage.getItem(MODE_KEY) as Mode) || 'parent',
   )
 
   const pick = useCallback((next: Mode) => {
@@ -115,7 +141,7 @@ function Shell() {
 
   return (
     <StoreProvider initial={vault.db} persist={vault.persist}>
-      {mode === 'choose' && <ModeSelect onPick={pick} />}
+      <AutoCheckIn />
       {mode === 'parent' && <ParentShell onLeave={() => pick('teacher')} />}
       {mode === 'teacher' && <TeacherWithIdle onIdle={toParent} />}
     </StoreProvider>

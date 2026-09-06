@@ -1,26 +1,29 @@
 import type { AttendanceRecord, Child, ScheduleBlock, Settings, ISODate } from '../types'
-import { timeToMinutes, weekdayOf, inRange } from './dates'
+import { timeToMinutes, weekdayOf, inRange, daysBetween } from './dates'
 import { round2 } from './money'
 
 export interface BillingResult {
-  /** Actual clock minutes between check-in and check-out. */
+  /** Actual clock minutes between check-in and check-out, when recorded. */
   rawMinutes: number
-  /** Minutes after rounding / minimum / daily cap have been applied. */
+  /** Minutes actually charged, after basis, rounding, minimum and cap. */
   billedMinutes: number
   billedHours: number
   rate: number
-  /** Hours x rate, before the late fee. */
+  /** Multiplier applied for the day's status (holiday, sick, absent). */
+  statusRate: number
+  /** Hours x rate x statusRate, before the late fee. */
   baseAmount: number
   lateMinutes: number
+  lateBlocks: number
   lateFee: number
   amount: number
-  /** Human-readable reasons the billed time differs from the raw time. */
+  /** Human-readable reasons the charge is what it is. */
   adjustments: string[]
 }
 
 export const EMPTY_BILLING: BillingResult = {
-  rawMinutes: 0, billedMinutes: 0, billedHours: 0, rate: 0,
-  baseAmount: 0, lateMinutes: 0, lateFee: 0, amount: 0, adjustments: [],
+  rawMinutes: 0, billedMinutes: 0, billedHours: 0, rate: 0, statusRate: 0,
+  baseAmount: 0, lateMinutes: 0, lateBlocks: 0, lateFee: 0, amount: 0, adjustments: [],
 }
 
 function applyRounding(minutes: number, s: Settings): number {
@@ -59,11 +62,45 @@ export function rateForChild(child: Child | undefined, settings: Settings): numb
 }
 
 /**
- * Works out what a single attendance record is worth.
+ * The multiplier for a day that was not attended as normal.
  *
- * `present` bills the clock time. A non-present day bills nothing unless it is
- * explicitly marked billable, in which case the contracted (scheduled) hours are
- * charged instead — the usual arrangement for retainer or public-holiday days.
+ * A holiday declared with enough notice is discounted; declared late, it is
+ * charged in full. Sickness and unexplained absence are charged in full — the
+ * place was held either way.
+ */
+export function statusRateFor(record: AttendanceRecord, s: Settings): { rate: number; why: string } {
+  switch (record.status) {
+    case 'present':
+      return { rate: 1, why: '' }
+    case 'sick':
+      return { rate: s.sickRate, why: s.sickRate === 1 ? 'Sick day, charged in full' : 'Sick day' }
+    case 'absent':
+      return { rate: s.absentRate, why: s.absentRate === 1 ? 'Absent, charged in full' : 'Absent' }
+    case 'holiday': {
+      // Notice runs from the day it was declared to the day off.
+      const notice = record.noticeDate ? daysBetween(record.noticeDate, record.date) : 0
+      if (notice >= s.holidayNoticeDays) {
+        return {
+          rate: s.holidayNoticedRate,
+          why: `Holiday, ${notice} days' notice — ${Math.round(s.holidayNoticedRate * 100)}%`,
+        }
+      }
+      return {
+        rate: s.holidayShortNoticeRate,
+        why: record.noticeDate
+          ? `Holiday, only ${notice} days' notice — full price`
+          : 'Holiday with no notice recorded — full price',
+      }
+    }
+  }
+}
+
+/**
+ * What a single day is worth.
+ *
+ * Under the 'schedule' basis the booking is the contract: the booked hours are
+ * charged whether or not anyone remembered to use the tablet, and a late
+ * collection is charged on top in whole blocks past a grace period.
  */
 export function calcBilling(
   record: AttendanceRecord,
@@ -73,24 +110,35 @@ export function calcBilling(
   const rate = isFinite(record.rate) ? record.rate : settings.defaultHourlyRate
   const adjustments: string[] = []
 
-  let rawMinutes = 0
-  if (record.status === 'present') {
-    const inM = timeToMinutes(record.checkIn)
-    const outM = timeToMinutes(record.checkOut)
-    // Still checked in, or a bad pair of times — nothing to bill yet.
-    if (inM === null || outM === null || outM <= inM) {
-      return { ...EMPTY_BILLING, rate }
-    }
-    rawMinutes = outM - inM
+  const inM = timeToMinutes(record.checkIn)
+  const outM = timeToMinutes(record.checkOut)
+  const rawMinutes = inM !== null && outM !== null && outM > inM ? outM - inM : 0
+
+  const booked = scheduledMinutes(scheduleBlocks)
+  const useSchedule = settings.billBasis === 'schedule' && booked > 0
+
+  let base: number
+  if (useSchedule) {
+    base = booked
+    adjustments.push('Charged on the booking')
   } else {
-    if (!record.billable) return { ...EMPTY_BILLING, rate }
-    rawMinutes = scheduledMinutes(scheduleBlocks)
-    if (rawMinutes === 0) return { ...EMPTY_BILLING, rate }
-    adjustments.push('Charged at contracted hours')
+    // No booking, or billing on the clock: a day with no usable times is worth nothing.
+    if (record.status !== 'present') {
+      if (!record.billable) return { ...EMPTY_BILLING, rate }
+      base = booked
+      if (base === 0) return { ...EMPTY_BILLING, rate }
+      adjustments.push('Charged at contracted hours')
+    } else {
+      if (rawMinutes === 0) return { ...EMPTY_BILLING, rate }
+      base = rawMinutes
+    }
   }
 
-  let billed = applyRounding(rawMinutes, settings)
-  if (billed !== rawMinutes && record.status === 'present') {
+  // An explicitly non-billable day is not charged, whatever the basis.
+  if (record.status !== 'present' && !record.billable) return { ...EMPTY_BILLING, rate }
+
+  let billed = applyRounding(base, settings)
+  if (billed !== base && !useSchedule) {
     adjustments.push(`Rounded to ${settings.roundingMinutes} min`)
   }
 
@@ -106,29 +154,45 @@ export function calcBilling(
     adjustments.push(`Capped at ${settings.dailyCapHours}h`)
   }
 
-  // Late collection is charged on top of the hourly time, measured against the
-  // latest booked finish for that day. No schedule means no late fee.
-  let lateMinutes = 0
-  let lateFee = 0
-  if (record.status === 'present' && settings.lateFeePerMinute > 0 && scheduleBlocks.length) {
-    const outM = timeToMinutes(record.checkOut)
-    const bookedEnd = Math.max(...scheduleBlocks.map(b => timeToMinutes(b.end) ?? 0))
-    if (outM !== null && bookedEnd > 0 && outM > bookedEnd) {
-      lateMinutes = outM - bookedEnd
-      lateFee = round2(lateMinutes * settings.lateFeePerMinute)
-      adjustments.push(`${lateMinutes} min late collection`)
-    }
+  const { rate: statusRate, why } = statusRateFor(record, settings)
+  if (why) adjustments.push(why)
+  if (statusRate <= 0) {
+    return { ...EMPTY_BILLING, rate, statusRate, rawMinutes }
   }
 
   const billedHours = billed / 60
-  const baseAmount = round2(billedHours * rate)
+  const baseAmount = round2(billedHours * rate * statusRate)
+
+  // Late collection: only for a day actually attended, and only measured against
+  // a booked finish. Whole blocks, after a grace period.
+  let lateMinutes = 0, lateBlocks = 0, lateFee = 0
+  if (record.status === 'present' && scheduleBlocks.length && settings.lateBlockFee > 0) {
+    const bookedEnd = Math.max(...scheduleBlocks.map(b => timeToMinutes(b.end) ?? 0))
+    if (outM !== null && bookedEnd > 0 && outM > bookedEnd) {
+      lateMinutes = outM - bookedEnd
+      const chargeable = lateMinutes - Math.max(0, settings.lateGraceMinutes)
+      if (chargeable > 0) {
+        const block = Math.max(1, settings.lateBlockMinutes)
+        lateBlocks = Math.ceil(chargeable / block)
+        lateFee = round2(lateBlocks * settings.lateBlockFee)
+        adjustments.push(
+          `${lateMinutes} min late — ${lateBlocks} × ${settings.lateBlockMinutes} min block`,
+        )
+      } else {
+        adjustments.push(`${lateMinutes} min late, within the ${settings.lateGraceMinutes} min grace`)
+      }
+    }
+  }
+
   return {
     rawMinutes,
     billedMinutes: billed,
     billedHours: round2(billedHours),
     rate,
+    statusRate,
     baseAmount,
     lateMinutes,
+    lateBlocks,
     lateFee,
     amount: round2(baseAmount + lateFee),
     adjustments,

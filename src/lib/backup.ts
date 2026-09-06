@@ -1,7 +1,8 @@
 import type { Database } from '../types'
 import { makeZip, textEntry, dataUrlEntry, type ZipEntry } from './zip'
 import {
-  attendanceCSV, invoicesCSV, notesCSV, childrenCSV, schedulesCSV, readableHTML, toCSV,
+  attendanceCSV, invoicesCSV, notesCSV, childrenCSV, schedulesCSV, activitiesCSV,
+  readableHTML, toCSV,
 } from './exporters'
 import { exportJSON } from './repo'
 import { today } from './dates'
@@ -54,9 +55,13 @@ the images are in this archive rather than in the JSON.
   version: number
   updatedAt: ISO timestamp
   settings: { businessName, defaultHourlyRate, roundingMinutes, roundingMode,
-              minimumHours, dailyCapHours, lateFeePerMinute, taxEnabled,
-              taxName, taxRate, invoicePrefix, nextInvoiceNumber,
-              paymentTermsDays, currency, locale, ... }
+              minimumHours, dailyCapHours, taxEnabled, taxName, taxRate,
+              invoicePrefix, nextInvoiceNumber, paymentTermsDays,
+              currency, locale,
+              billBasis: 'schedule'|'actual',
+              lateGraceMinutes, lateBlockMinutes, lateBlockFee,
+              holidayNoticeDays, holidayNoticedRate, holidayShortNoticeRate,
+              sickRate, absentRate, ... }
   children:   [{ id, firstName, lastName, dob, startDate, endDate, status,
                  hourlyRate (null = use default), colour, guardians[],
                  allergies, medical, emergencyContact, general, createdAt }]
@@ -66,7 +71,12 @@ the images are in this archive rather than in the JSON.
                  status: present|absent|sick|holiday, billable,
                  rate (snapshot of the rate on that day), note,
                  invoiceId (set once billed), createdAt,
+                 noticeDate (holidays: the day the holiday was declared),
                  signIn?: { ref, name, at, time }, signOut?: { ... } }]
+  activities: [{ id, childId, date, kind: 'nappy'|'sleep', time "HH:MM",
+                 endTime (sleep), nappy: 'dry'|'wet'|'stools'|'wet+stools',
+                 checks: [{ at "HH:MM", done, by }]  // safe-sleep checks
+                 note, createdAt }]
   notes:      [{ id, childId, date, category, title, body, author, flagged, createdAt }]
   invoices:   [{ id, number, childId, periodStart, periodEnd, issueDate, dueDate,
                  lines[], adjustments[], subtotal, tax, total,
@@ -93,6 +103,7 @@ export function buildBackupEntries(db: Database, signatures: Record<string, stri
     textEntry('attendance.csv', attendanceCSV(db)),
     textEntry('invoices.csv', invoicesCSV(db)),
     textEntry('notes.csv', notesCSV(db)),
+    textEntry('activities.csv', activitiesCSV(db)),
     textEntry('closures.csv', toCSV([
       ['Date', 'Name', 'Charged'],
       ...db.closures.map(c => [c.date, c.name, c.billable ? 'yes' : 'no']),

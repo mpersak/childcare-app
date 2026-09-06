@@ -17,7 +17,22 @@ export const DEFAULT_SETTINGS: Settings = {
   roundingMode: 'nearest',
   minimumHours: 0,
   dailyCapHours: 0,
-  lateFeePerMinute: 0,
+
+  billBasis: 'schedule',
+  lateGraceMinutes: 10,
+  lateBlockMinutes: 10,
+  lateBlockFee: 5,
+
+  holidayNoticeDays: 14,
+  holidayNoticedRate: 0.5,
+  holidayShortNoticeRate: 1,
+  sickRate: 1,
+  absentRate: 1,
+
+  autoCheckIn: true,
+  sleepCheckMinutes: 10,
+  sleepBlockMinutes: 30,
+  activityEmail: '',
 
   taxEnabled: true,
   taxName: 'GST',
@@ -61,6 +76,7 @@ export function emptyDatabase(): Database {
     schedules: [],
     attendance: [],
     notes: [],
+    activities: [],
     invoices: [],
     closures: [],
     updatedAt: new Date().toISOString(),

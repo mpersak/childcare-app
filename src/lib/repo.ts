@@ -20,6 +20,7 @@ export function migrate(db: Database): Database {
     schedules: db.schedules ?? [],
     attendance: db.attendance ?? [],
     notes: db.notes ?? [],
+    activities: db.activities ?? [],
     invoices: db.invoices ?? [],
     closures: db.closures ?? [],
     version: DB_VERSION,

@@ -129,3 +129,17 @@ export function ageFrom(dob: ISODate | ''): string {
   if (months < 24) return `${months} mo`
   return `${Math.floor(months / 12)}y ${months % 12}m`
 }
+
+/** Whole days from `from` to `to`. Negative when `to` is earlier. */
+export function daysBetween(from: ISODate, to: ISODate): number {
+  return Math.round((fromISODate(to).getTime() - fromISODate(from).getTime()) / 86_400_000)
+}
+
+/** Times on a fixed grid, e.g. every 10 minutes between two clock times. */
+export function everyMinutes(from: string, to: string, step: number): string[] {
+  const s = timeToMinutes(from), e = timeToMinutes(to)
+  if (s === null || e === null || step <= 0) return []
+  const out: string[] = []
+  for (let t = s + step; t < e; t += step) out.push(minutesToTime(t))
+  return out
+}

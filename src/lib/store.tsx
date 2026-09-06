@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AttendanceRecord, Child, Closure, Database, Invoice, ISODate,
-  KidNote, ScheduleBlock, Settings,
+  KidNote, ScheduleBlock, Settings, Activity, NappyKind,
 } from '../types'
 import { uid, CHILD_COLOURS } from './defaults'
 import { buildInvoice, invoiceNumberFor, recalcTotals } from './invoicing'
 import { rateForChild, scheduleFor, scheduledMinutes } from './billing'
-import { nowTime, today } from './dates'
+import { everyMinutes, minutesToTime, nowTime, timeToMinutes, today } from './dates'
 
 interface Actions {
   updateSettings(patch: Partial<Settings>): void
@@ -32,6 +32,15 @@ interface Actions {
   ): void
   /** Creates records for every child booked on that date. Never touches existing rows. */
   fillFromSchedule(date: ISODate): void
+
+  /** Logs a nappy change at the given time (defaults to now). */
+  addNappy(childId: string, nappy: NappyKind, date?: ISODate, time?: string): void
+  /** Logs a sleep and generates its safe-sleep checks. */
+  addSleep(childId: string, start: string, minutes: number, date?: ISODate): void
+  updateActivity(id: string, patch: Partial<Activity>): void
+  /** Marks one generated sleep check as actually carried out. */
+  setSleepCheck(activityId: string, at: string, done: boolean, by: string): void
+  deleteActivity(id: string): void
 
   addNote(input: Omit<KidNote, 'id' | 'createdAt'>): void
   updateNote(id: string, patch: Partial<KidNote>): void
@@ -78,7 +87,12 @@ export function StoreProvider({ initial, persist, children }: {
         if (i >= 0) {
           // An invoiced record is locked; editing it would silently desync the invoice.
           if (d.attendance[i].invoiceId) return d
-          d.attendance[i] = { ...d.attendance[i], ...input }
+          const merged = { ...d.attendance[i], ...input }
+          // Declaring a holiday stamps the day it was declared, which is what
+          // decides whether enough notice was given to earn the discount.
+          if (merged.status === 'holiday' && !merged.noticeDate) merged.noticeDate = today()
+          if (merged.status !== 'holiday') delete merged.noticeDate
+          d.attendance[i] = merged
         } else {
           const child = d.children.find(c => c.id === input.childId)
           d.attendance.push({
@@ -92,6 +106,7 @@ export function StoreProvider({ initial, persist, children }: {
             invoiceId: null,
             createdAt: new Date().toISOString(),
             ...input,
+            ...(input.status === 'holiday' ? { noticeDate: input.noticeDate ?? today() } : {}),
           })
         }
         return d
@@ -131,6 +146,7 @@ export function StoreProvider({ initial, persist, children }: {
           d.schedules = d.schedules.filter(s => s.childId !== id)
           d.attendance = d.attendance.filter(a => a.childId !== id || a.invoiceId)
           d.notes = d.notes.filter(n => n.childId !== id)
+          d.activities = d.activities.filter(a => a.childId !== id)
           return d
         })
       },
@@ -191,6 +207,52 @@ export function StoreProvider({ initial, persist, children }: {
           }
           return d
         })
+      },
+
+      addNappy(childId, nappy, date = today(), time = nowTime()) {
+        mutate(d => {
+          d.activities.push({
+            id: uid('act'), childId, date, kind: 'nappy', time, nappy,
+            note: '', createdAt: new Date().toISOString(),
+          })
+          return d
+        })
+      },
+      addSleep(childId, start, minutes, date = today()) {
+        mutate(d => {
+          const startM = timeToMinutes(start)
+          if (startM === null || minutes <= 0) return d
+          const end = minutesToTime(startM + minutes)
+          const step = d.settings.sleepCheckMinutes
+          // Checks are generated unticked: the record should show what was
+          // actually done, not assert that every check happened.
+          const checks = step > 0
+            ? everyMinutes(start, end, step).map(at => ({ at, done: false, by: '' }))
+            : []
+          d.activities.push({
+            id: uid('act'), childId, date, kind: 'sleep', time: start, endTime: end,
+            checks, note: '', createdAt: new Date().toISOString(),
+          })
+          return d
+        })
+      },
+      updateActivity(id, patch) {
+        mutate(d => {
+          const i = d.activities.findIndex(a => a.id === id)
+          if (i >= 0) d.activities[i] = { ...d.activities[i], ...patch }
+          return d
+        })
+      },
+      setSleepCheck(activityId, at, done, by) {
+        mutate(d => {
+          const act = d.activities.find(a => a.id === activityId)
+          if (!act?.checks) return d
+          act.checks = act.checks.map(c => c.at === at ? { ...c, done, by: done ? by : '' } : c)
+          return d
+        })
+      },
+      deleteActivity(id) {
+        mutate(d => { d.activities = d.activities.filter(a => a.id !== id); return d })
       },
 
       addNote(input) {

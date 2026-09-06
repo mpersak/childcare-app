@@ -194,3 +194,24 @@ export function schedulesCSV(db: Database): string {
   }
   return toCSV(rows)
 }
+
+export function activitiesCSV(db: Database, from?: string, to?: string): string {
+  const rows: unknown[][] = [[
+    'Date', 'Time', 'End', 'Child', 'Type', 'Nappy', 'Sleep checks done', 'Sleep checks total', 'Note',
+  ]]
+  const list = db.activities
+    .filter(a => (!from || a.date >= from) && (!to || a.date <= to))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+
+  for (const a of list) {
+    rows.push([
+      a.date, a.time, a.endTime ?? '',
+      childName(db.children.find(c => c.id === a.childId)),
+      a.kind, a.nappy ?? '',
+      a.checks ? a.checks.filter(c => c.done).length : '',
+      a.checks ? a.checks.length : '',
+      a.note,
+    ])
+  }
+  return toCSV(rows)
+}

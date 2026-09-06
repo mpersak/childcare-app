@@ -1,6 +1,6 @@
 import type { Database, ISODate, NoteCategory } from '../types'
 import { emptyDatabase, uid, CHILD_COLOURS } from './defaults'
-import { addDays, addMonths, endOfMonth, startOfMonth, today, weekdayOf } from './dates'
+import { addDays, addMonths, endOfMonth, minutesToTime, startOfMonth, today, weekdayOf } from './dates'
 import { buildInvoice, invoiceNumberFor } from './invoicing'
 import { scheduleFor } from './billing'
 
@@ -56,7 +56,9 @@ export function buildDemoDatabase(): Database {
     logoText: 'SC',
     defaultHourlyRate: 12.5,
     minimumHours: 2,
-    lateFeePerMinute: 1,
+    lateGraceMinutes: 10,
+    lateBlockMinutes: 10,
+    lateBlockFee: 5,
     bankAccount: '00-0000-0000000-00',
   }
 
@@ -162,6 +164,41 @@ export function buildDemoDatabase(): Database {
       flagged: seed.category === 'incident',
       createdAt: new Date().toISOString(),
     })
+  }
+
+  // A few nappies and a sleep on each of the last several weekdays.
+  for (let back = 0; back < 10; back++) {
+    const d0 = addDays(now, -back)
+    const wd = weekdayOf(d0)
+    if (wd === 0 || wd === 6) continue
+    for (const child of db.children) {
+      if (!scheduleFor(db.schedules, child.id, d0).length) continue
+      const kinds = ['dry', 'wet', 'stools', 'wet+stools'] as const
+      const changes = 2 + Math.floor(rand() * 2)
+      for (let i = 0; i < changes; i++) {
+        const mins = 9 * 60 + i * 150 + Math.floor(rand() * 40)
+        db.activities.push({
+          id: uid('act'), childId: child.id, date: d0, kind: 'nappy',
+          time: minutesToTime(mins),
+          nappy: kinds[Math.floor(rand() * kinds.length)],
+          note: '', createdAt: new Date().toISOString(),
+        })
+      }
+      if (rand() < 0.75) {
+        const start = 12 * 60 + Math.floor(rand() * 40)
+        const length = 60 + Math.floor(rand() * 3) * 30
+        // Most checks were done, a few missed — closer to a real record than a perfect one.
+        const checks = []
+        for (let t = start + 10; t < start + length; t += 10) {
+          checks.push({ at: minutesToTime(t), done: rand() < 0.85, by: 'Owner' })
+        }
+        db.activities.push({
+          id: uid('act'), childId: child.id, date: d0, kind: 'sleep',
+          time: minutesToTime(start), endTime: minutesToTime(start + length), checks,
+          note: '', createdAt: new Date().toISOString(),
+        })
+      }
+    }
   }
 
   db.closures.push({

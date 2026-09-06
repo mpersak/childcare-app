@@ -43,6 +43,8 @@ const base = emptyDatabase()
 base.settings.defaultHourlyRate = 12
 base.settings.roundingMinutes = 15
 base.settings.roundingMode = 'nearest'
+// These exercise clock-time billing specifically; the app now defaults to the booking.
+base.settings.billBasis = 'actual'
 
 check('flat 7 hours at 12/h', calcBilling(record(), base.settings, [block]).amount, 84)
 
@@ -63,14 +65,18 @@ const minSettings = { ...base.settings, minimumHours: 3 }
 check('minimum charge lifts a short session',
   calcBilling(record({ checkIn: '09:00', checkOut: '10:00' }), minSettings, [block]).amount, 36)
 
-const capSettings = { ...base.settings, dailyCapHours: 6 }
+// Late collection off, so this isolates the cap — 18:00 is three hours past the booking.
+const capSettings = { ...base.settings, dailyCapHours: 6, lateBlockFee: 0 }
 check('daily cap limits a long session',
   calcBilling(record({ checkIn: '07:00', checkOut: '18:00' }), capSettings, [block]).amount, 72)
+check('a capped day still attracts the late fee when one applies',
+  calcBilling(record({ checkIn: '07:00', checkOut: '18:00' }),
+    { ...capSettings, lateBlockFee: 5 }, [block]).lateBlocks, 17)
 
-const lateSettings = { ...base.settings, lateFeePerMinute: 1 }
+const lateSettings = { ...base.settings, lateGraceMinutes: 10, lateBlockMinutes: 10, lateBlockFee: 5 }
 const late = calcBilling(record({ checkOut: '15:20' }), lateSettings, [block])
 check('late fee counts minutes past the booked finish', late.lateMinutes, 20)
-check('late fee is added on top of the hourly charge', late.amount, round2(7.25 * 12 + 20))
+check('late fee sits on top of the hourly charge', late.amount, round2(7.25 * 12 + 5))
 
 check('an unbilled absence charges nothing',
   calcBilling(record({ status: 'absent', billable: false, checkIn: null, checkOut: null }), base.settings, [block]).amount, 0)
@@ -160,6 +166,68 @@ check('a completed day reads as signed out', dayRows[0].status, 'done')
 const occ = occupancy(dayRows, 8 * 60, 15 * 60, 60)
 check('occupancy counts the child through the middle of the day', occ[3].count, 1)
 check('occupancy is empty once everyone has gone', occupancy(dayRows, 16 * 60, 17 * 60, 60)[0].count, 0)
+
+// --- schedule as the contract ---------------------------------------------
+const sched = emptyDatabase().settings
+sched.defaultHourlyRate = 12
+sched.billBasis = 'schedule'
+sched.lateGraceMinutes = 10
+sched.lateBlockMinutes = 10
+sched.lateBlockFee = 5
+
+check('the booking is charged even when nobody was signed in',
+  calcBilling(record({ checkIn: null, checkOut: null }), sched, [block]).amount, 84)
+check('arriving late does not reduce the charge',
+  calcBilling(record({ checkIn: '10:00', checkOut: '15:00' }), sched, [block]).amount, 84)
+check('leaving early does not reduce the charge',
+  calcBilling(record({ checkOut: '12:00' }), sched, [block]).amount, 84)
+
+check('collection within the grace is free',
+  calcBilling(record({ checkOut: '15:10' }), sched, [block]).amount, 84)
+check('one minute past the grace costs a whole block',
+  calcBilling(record({ checkOut: '15:11' }), sched, [block]).amount, 89)
+check('a full block past the grace still costs one block',
+  calcBilling(record({ checkOut: '15:20' }), sched, [block]).amount, 89)
+check('into the second block costs two',
+  calcBilling(record({ checkOut: '15:21' }), sched, [block]).amount, 94)
+check('45 min late is 35 chargeable, so four blocks',
+  calcBilling(record({ checkOut: '15:45' }), sched, [block]).lateBlocks, 4)
+
+// --- days off --------------------------------------------------------------
+check('a sick day is charged in full',
+  calcBilling(record({ status: 'sick', checkIn: null, checkOut: null }), sched, [block]).amount, 84)
+check('an unexplained absence is charged in full',
+  calcBilling(record({ status: 'absent', checkIn: null, checkOut: null }), sched, [block]).amount, 84)
+
+const noticed = record({
+  status: 'holiday', checkIn: null, checkOut: null,
+  date: '2026-03-02', noticeDate: addDays('2026-03-02', -14),
+})
+check('a holiday with exactly the required notice is half price',
+  calcBilling(noticed, sched, [block]).amount, 42)
+
+const late13 = record({
+  status: 'holiday', checkIn: null, checkOut: null,
+  date: '2026-03-02', noticeDate: addDays('2026-03-02', -13),
+})
+check('a day short of the notice period is full price',
+  calcBilling(late13, sched, [block]).amount, 84)
+
+check('a holiday with no notice recorded is full price',
+  calcBilling(record({ status: 'holiday', checkIn: null, checkOut: null }), sched, [block]).amount, 84)
+
+const generous = { ...sched, holidayNoticedRate: 0, sickRate: 0 }
+check('a fully discounted holiday costs nothing',
+  calcBilling(noticed, generous, [block]).amount, 0)
+check('a free sick-day policy costs nothing',
+  calcBilling(record({ status: 'sick', checkIn: null, checkOut: null }), generous, [block]).amount, 0)
+
+// Billing on the clock still works for drop-ins with no booking.
+const actualBasis = { ...sched, billBasis: 'actual' as const }
+check('with no booking, the clock is used',
+  calcBilling(record({ checkIn: '09:00', checkOut: '12:00' }), sched, []).amount, 36)
+check('the actual basis charges recorded time, not the booking',
+  calcBilling(record({ checkIn: '09:00', checkOut: '12:00' }), actualBasis, [block]).amount, 36)
 
 // --- repository input -----------------------------------------------------
 check('a bare repository name is left alone',

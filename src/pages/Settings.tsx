@@ -4,6 +4,7 @@ import { Card, ConfirmButton, Field, PageHead } from '../components/ui'
 import { SyncPanel, SecurityPanel } from '../components/SyncPanel'
 import { BackupPanel } from '../components/BackupPanel'
 import { PinPanel } from '../components/PinPanel'
+import { ChargingPanel } from '../components/ChargingPanel'
 import { SheetSettings } from './SignSheet'
 import { useVault } from '../lib/vault'
 import { attendanceCSV, download, invoicesCSV, readableHTML } from '../lib/exporters'
@@ -99,10 +100,6 @@ export default function SettingsPage() {
               <input className="input" type="number" min="0" step="0.5" value={s.dailyCapHours}
                      onChange={e => set({ dailyCapHours: Number(e.target.value) })} />
             </Field>
-            <Field label="Late collection fee" hint="Per minute past the booked finish. 0 turns it off">
-              <input className="input" type="number" min="0" step="0.25" value={s.lateFeePerMinute}
-                     onChange={e => set({ lateFeePerMinute: Number(e.target.value) })} />
-            </Field>
           </div>
           <p className="muted small">
             Changing a rate does not touch attendance already recorded — every record keeps the
@@ -189,6 +186,8 @@ export default function SettingsPage() {
           )}
         </Card>
       </div>
+
+      <ChargingPanel />
 
       <SheetSettings />
 
