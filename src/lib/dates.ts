@@ -154,3 +154,35 @@ export const WORKING_DAYS_PER_WEEK = WORKING_WEEKDAYS.length
 export function isWorkingDay(date: ISODate): boolean {
   return WORKING_WEEKDAYS.includes(weekdayOf(date))
 }
+
+/**
+ * Weeks around a given one, for a week picker.
+ *
+ * A native `<input type="week">` is not supported in Safari, where it collapses
+ * to a plain text box — no use on an iPad. A list of weeks works everywhere and
+ * reads better anyway. The selected week is always included, even when it falls
+ * outside the range, so navigating with the arrows never empties the picker.
+ */
+export function weekOptions(
+  selectedMonday: ISODate, back = 26, forward = 4,
+): { monday: ISODate; label: string }[] {
+  const thisMonday = startOfWeek(today())
+  const out: ISODate[] = []
+  for (let i = -back; i <= forward; i++) out.push(addDays(thisMonday, i * 7))
+  if (!out.includes(selectedMonday)) out.push(selectedMonday)
+
+  return out
+    .sort((a, b) => b.localeCompare(a))
+    .map(monday => ({ monday, label: weekLabel(monday) }))
+}
+
+export function weekLabel(monday: ISODate, locale = 'en-NZ'): string {
+  const friday = addDays(monday, 4)
+  const from = fromISODate(monday)
+  const to = fromISODate(friday)
+  const sameMonth = from.getMonth() === to.getMonth()
+  const f = from.toLocaleDateString(locale, sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'short' })
+  const t = to.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+  const year = to.getFullYear() === new Date().getFullYear() ? '' : ` ${to.getFullYear()}`
+  return `${f} – ${t}${year}`
+}

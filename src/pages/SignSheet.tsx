@@ -6,7 +6,8 @@ import { scheduleFor } from '../lib/billing'
 import { openDraft, trimBody } from '../lib/email'
 import { download, toCSV } from '../lib/exporters'
 import {
-  addDays, formatDate, fromISODate, startOfWeek, today, WEEKDAYS_SHORT, WORKING_DAYS_PER_WEEK,
+  addDays, formatDate, fromISODate, startOfWeek, today, weekOptions,
+  WEEKDAYS_SHORT, WORKING_DAYS_PER_WEEK,
 } from '../lib/dates'
 
 interface SheetRow {
@@ -61,8 +62,11 @@ export default function SignSheet() {
           name: childName(child),
           bookedFrom: blocks[0].start,
           bookedTo: blocks[blocks.length - 1].end,
-          arrived: blank ? '' : (rec?.status === 'present' ? rec.checkIn ?? '' : ''),
-          collected: blank ? '' : (rec?.status === 'present' ? rec.checkOut ?? '' : ''),
+          // Prefer the time a guardian actually signed. Auto check-in fills
+          // checkIn/checkOut from the booking, which is right for billing but
+          // would misreport arrival on a sheet the coordinator reads.
+          arrived: blank ? '' : (rec?.status === 'present' ? rec.signIn?.time ?? rec.checkIn ?? '' : ''),
+          collected: blank ? '' : (rec?.status === 'present' ? rec.signOut?.time ?? rec.checkOut ?? '' : ''),
           status: rec && rec.status !== 'present' ? rec.status : '',
           signInRef: blank ? undefined : rec?.signIn?.ref,
           signOutRef: blank ? undefined : rec?.signOut?.ref,
@@ -126,10 +130,17 @@ export default function SignSheet() {
         subtitle={range}
         actions={
           <>
-            <button className="btn" onClick={() => setWeekStart(addDays(weekStart, -7))}>‹</button>
-            <input className="input" type="date" value={weekStart}
-                   onChange={e => setWeekStart(startOfWeek(e.target.value || today()))} />
-            <button className="btn" onClick={() => setWeekStart(addDays(weekStart, 7))}>›</button>
+            <button className="btn" onClick={() => setWeekStart(addDays(weekStart, -7))}
+                    aria-label="Previous week">‹</button>
+            <select className="input week-select" value={weekStart}
+                    aria-label="Week"
+                    onChange={e => setWeekStart(e.target.value)}>
+              {weekOptions(weekStart).map(w => (
+                <option key={w.monday} value={w.monday}>{w.label}</option>
+              ))}
+            </select>
+            <button className="btn" onClick={() => setWeekStart(addDays(weekStart, 7))}
+                    aria-label="Next week">›</button>
             <button className="btn" onClick={() => setWeekStart(startOfWeek(today()))}>This week</button>
           </>
         }

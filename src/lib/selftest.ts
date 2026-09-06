@@ -7,7 +7,7 @@ import { emptyDatabase, uid } from './defaults'
 import { calcBilling } from './billing'
 import { buildInvoice, amountDue, isOverdue, recalcTotals } from './invoicing'
 import { summarise } from './finance'
-import { addDays, timeToMinutes, toISODate, today } from './dates'
+import { addDays, startOfWeek, timeToMinutes, toISODate, today, weekOptions } from './dates'
 import { assignLanes, buildDay, dayWindow, occupancy } from './daygrid'
 import { normaliseRepo } from './github'
 import { round2 } from './money'
@@ -228,6 +228,20 @@ check('with no booking, the clock is used',
   calcBilling(record({ checkIn: '09:00', checkOut: '12:00' }), sched, []).amount, 36)
 check('the actual basis charges recorded time, not the booking',
   calcBilling(record({ checkIn: '09:00', checkOut: '12:00' }), actualBasis, [block]).amount, 36)
+
+// --- week picker -----------------------------------------------------------
+const thisMonday = startOfWeek(today())
+const opts = weekOptions(thisMonday, 4, 1)
+check('the picker offers the requested span of weeks', opts.length, 6)
+check('every option is a Monday', opts.every(o => startOfWeek(o.monday) === o.monday), true)
+check('the newest week is listed first', opts[0].monday, addDays(thisMonday, 7))
+
+// Navigating with the arrows must never empty the picker.
+const farBack = addDays(thisMonday, -52 * 7)
+check('a week outside the range is still included',
+  weekOptions(farBack, 4, 1).some(o => o.monday === farBack), true)
+check('including it does not drop the normal range',
+  weekOptions(farBack, 4, 1).length, 7)
 
 // --- repository input -----------------------------------------------------
 check('a bare repository name is left alone',

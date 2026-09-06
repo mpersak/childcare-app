@@ -1047,6 +1047,8 @@ textarea.input { resize: vertical; }
 }
 .topbar-parent { margin-left: auto; order: 3; }
 
+.week-select { min-width: 168px; }
+
 /* --------------------------------- print -------------------------------- */
 @media print {
   .sidebar, .page-head, .no-print, .tabs, .sign-overlay { display: none !important; }
