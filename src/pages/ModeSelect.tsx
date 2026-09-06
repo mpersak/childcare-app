@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useVault } from '../lib/vault'
 import { useStore } from '../lib/store'
 import { hashPin, sameHash, fromBase64 } from '../lib/crypto'
+import { PinPad } from '../components/PinPad'
 
 /**
  * Shown once the vault is open. The tablet by the door lives in parent mode all
@@ -59,22 +60,10 @@ export function ExitParentMode({ onCancel, onUnlocked }: {
         ? await verifyPin(candidate, db.settings.teacherPinHash, db.settings.teacherPinSalt)
         : await vault.verify(candidate)
       if (ok) onUnlocked()
-      else {
-        setError(usePin ? 'Wrong PIN.' : 'That passphrase does not match.')
-        setValue('')
-      }
+      else setError(usePin ? 'Wrong PIN.' : 'That passphrase does not match.')
     } finally {
       setBusy(false)
     }
-  }
-
-  const press = (digit: string) => {
-    if (busy) return
-    const next = (value + digit).slice(0, 8)
-    setValue(next)
-    setError('')
-    // Most PINs are four digits, so check as soon as that is plausible.
-    if (next.length >= 4) void check(next)
   }
 
   if (usePin) {
@@ -82,21 +71,8 @@ export function ExitParentMode({ onCancel, onUnlocked }: {
       <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onCancel() }}>
         <div className="modal mode-exit" role="dialog" aria-modal="true" aria-label="Teacher access">
           <header className="modal-head"><h2>Teacher access</h2></header>
-          <div className="modal-body pinpad-body">
-            <div className="pin-dots" aria-label={`${value.length} digits entered`}>
-              {[0, 1, 2, 3].map(i => (
-                <span key={i} className={i < value.length ? 'pin-dot on' : 'pin-dot'} />
-              ))}
-            </div>
-            {error && <p className="lock-error">{error}</p>}
-            <div className="pinpad">
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => (
-                <button key={d} className="pin-key" onClick={() => press(d)}>{d}</button>
-              ))}
-              <button className="pin-key subtle" onClick={() => setValue('')}>clear</button>
-              <button className="pin-key" onClick={() => press('0')}>0</button>
-              <button className="pin-key subtle" onClick={() => setValue(value.slice(0, -1))}>←</button>
-            </div>
+          <div className="modal-body">
+            <PinPad onSubmit={pin => { void check(pin) }} busy={busy} error={error} />
           </div>
           <footer className="modal-foot">
             <button className="btn" onClick={onCancel}>Cancel</button>

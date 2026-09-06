@@ -1,6 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-/** A numeric keypad sized for a thumb. Submits as soon as four digits are in. */
+/**
+ * A numeric keypad sized for a thumb. Submits as soon as enough digits are in.
+ *
+ * Digits are appended with a functional state update, not `value + d`: two taps
+ * inside one React batch — easy to produce on a tablet — would otherwise read
+ * the same stale `value` and collapse into a single digit.
+ */
 export function PinPad({ onSubmit, busy, error, digits = 4, autoSubmit = true }: {
   onSubmit(pin: string): void
   busy?: boolean
@@ -9,17 +15,27 @@ export function PinPad({ onSubmit, busy, error, digits = 4, autoSubmit = true }:
   autoSubmit?: boolean
 }) {
   const [value, setValue] = useState('')
+  const submitted = useRef('')
 
   const press = (d: string) => {
     if (busy) return
-    const next = (value + d).slice(0, 8)
-    setValue(next)
-    if (autoSubmit && next.length >= digits) {
-      onSubmit(next)
-      // Clear so a failed attempt does not leave stale digits behind.
-      setTimeout(() => setValue(''), 250)
-    }
+    setValue(prev => (prev + d).slice(0, 8))
   }
+
+  // Submitting from an effect keeps the state updater pure, so StrictMode's
+  // double invocation cannot fire the attempt twice.
+  useEffect(() => {
+    if (!autoSubmit || busy) return
+    if (value.length < digits) return
+    if (submitted.current === value) return
+    submitted.current = value
+    onSubmit(value)
+  }, [value, autoSubmit, busy, digits, onSubmit])
+
+  // A fresh error means that attempt failed; clear the pad ready for another.
+  useEffect(() => {
+    if (error) setValue('')
+  }, [error])
 
   return (
     <div className="pinpad-body">
@@ -38,7 +54,7 @@ export function PinPad({ onSubmit, busy, error, digits = 4, autoSubmit = true }:
         <button type="button" className="pin-key subtle" onClick={() => setValue('')}>clear</button>
         <button type="button" className="pin-key" onClick={() => press('0')}>0</button>
         <button type="button" className="pin-key subtle"
-                onClick={() => setValue(value.slice(0, -1))}>←</button>
+                onClick={() => setValue(v => v.slice(0, -1))}>←</button>
       </div>
 
       {!autoSubmit && (
