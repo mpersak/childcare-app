@@ -1026,6 +1026,18 @@ textarea.input { resize: vertical; }
   }
 }
 
+
+/* A day off still occupies its booked slot — it is usually still charged — but
+   must not read as an ordinary attended booking. */
+.wk-block.away {
+  background-image: repeating-linear-gradient(
+    135deg, rgba(255, 255, 255, .55) 0 5px, transparent 5px 10px);
+  opacity: .8;
+  box-shadow: inset 0 0 0 2px var(--surface-1), inset 0 0 0 3px rgba(0, 0, 0, .18);
+}
+.wk-block.away em { text-decoration: line-through; }
+.wk-block.away small { text-transform: capitalize; font-weight: 700; }
+
 /* --------------------------------- print -------------------------------- */
 @media print {
   .sidebar, .page-head, .no-print, .tabs, .sign-overlay { display: none !important; }

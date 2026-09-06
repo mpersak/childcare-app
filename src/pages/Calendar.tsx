@@ -222,7 +222,16 @@ function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
 
   const perDay = useMemo(() => days.map(d => {
     const rows = buildDay(db, d)
-    const items = rows.flatMap(r => r.booked.length ? r.booked : (r.actual ? [r.actual] : []))
+    // Carry the day's status onto each block. Flattening to bare timeline items
+    // loses it, which is what made a sick day look like an ordinary booking.
+    const items = rows.flatMap(r => {
+      const spans = r.booked.length ? r.booked : (r.actual ? [r.actual] : [])
+      return spans.map(s => ({
+        ...s,
+        away: r.status === 'away',
+        reason: r.status === 'away' ? (r.record?.status ?? 'away') : '',
+      }))
+    })
     return { date: d, rows, items }
   }), [db, monday])
 
@@ -261,23 +270,27 @@ function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
                 ))}
                 {closed && <span className="wk-closed">{closed.name}</span>}
 
-                {placed.map(({ item, lane }, i) => (
-                  <span
-                    key={i}
-                    className={`wk-block ${(item as TimelineItem).kind}`}
-                    style={{
-                      top: `${top(item.start)}%`,
-                      height: `${top(item.end) - top(item.start)}%`,
-                      left: `${(lane / lanes) * 100}%`,
-                      width: `${(1 / lanes) * 100}%`,
-                      background: (item as TimelineItem).colour,
-                    }}
-                    title={`${(item as TimelineItem).name} ${minutesToTime(item.start)}–${minutesToTime(item.end)}`}
-                  >
-                    <em>{(item as TimelineItem).name.split(' ')[0]}</em>
-                    <small>{minutesToTime(item.start)}</small>
-                  </span>
-                ))}
+                {placed.map(({ item, lane }, i) => {
+                  const block = item as TimelineItem & { away: boolean; reason: string }
+                  return (
+                    <span
+                      key={i}
+                      className={`wk-block ${block.kind}${block.away ? ' away' : ''}`}
+                      style={{
+                        top: `${top(item.start)}%`,
+                        height: `${top(item.end) - top(item.start)}%`,
+                        left: `${(lane / lanes) * 100}%`,
+                        width: `${(1 / lanes) * 100}%`,
+                        background: block.colour,
+                      }}
+                      title={`${block.name} ${minutesToTime(item.start)}–${minutesToTime(item.end)}` +
+                        (block.away ? ` — ${block.reason}` : '')}
+                    >
+                      <em>{block.name.split(' ')[0]}</em>
+                      <small>{block.away ? block.reason : minutesToTime(item.start)}</small>
+                    </span>
+                  )
+                })}
               </div>
             </div>
           )
