@@ -6,7 +6,7 @@ import { scheduleFor } from '../lib/billing'
 import { openDraft, trimBody } from '../lib/email'
 import { download, toCSV } from '../lib/exporters'
 import {
-  addDays, formatDate, fromISODate, startOfWeek, today, WEEKDAYS_SHORT,
+  addDays, formatDate, fromISODate, startOfWeek, today, WEEKDAYS_SHORT, WORKING_DAYS_PER_WEEK,
 } from '../lib/dates'
 
 interface SheetRow {
@@ -32,13 +32,12 @@ export default function SignSheet() {
   const vault = useVault()
   const s = db.settings
   const [weekStart, setWeekStart] = useState(() => startOfWeek(today()))
-  const [includeWeekend, setIncludeWeekend] = useState(false)
   const [blank, setBlank] = useState(false)
   const [sigs, setSigs] = useState<Record<string, string>>({})
 
   const days = useMemo(
-    () => Array.from({ length: includeWeekend ? 7 : 5 }, (_, i) => addDays(weekStart, i)),
-    [weekStart, includeWeekend],
+    () => Array.from({ length: WORKING_DAYS_PER_WEEK }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
   )
   const weekEnd = days[days.length - 1]
 
@@ -141,11 +140,6 @@ export default function SignSheet() {
           <label className="check">
             <input type="checkbox" checked={blank} onChange={e => setBlank(e.target.checked)} />
             Blank sheet for hand signing
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={includeWeekend}
-                   onChange={e => setIncludeWeekend(e.target.checked)} />
-            Include weekend
           </label>
           <span className="spacer" />
           <button className="btn" onClick={() => window.print()}>Print / save PDF</button>

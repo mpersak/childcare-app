@@ -4,7 +4,7 @@ import { useStore, childName } from '../lib/store'
 import { Avatar, Badge, Card, EmptyState, Field, Modal, PageHead } from '../components/ui'
 import { rateForChild, scheduledMinutes } from '../lib/billing'
 import { formatMoney } from '../lib/money'
-import { ageFrom, formatHours, today, WEEKDAYS_SHORT } from '../lib/dates'
+import { ageFrom, formatHours, today, WEEKDAYS_SHORT, WORKING_WEEKDAYS } from '../lib/dates'
 import type { ChildStatus } from '../types'
 
 const STATUSES: ChildStatus[] = ['active', 'waitlist', 'archived']
@@ -87,7 +87,7 @@ export default function Children() {
                   </div>
 
                   <div className="child-card-days">
-                    {[1, 2, 3, 4, 5, 6, 0].map(wd => (
+                    {WORKING_WEEKDAYS.map(wd => (
                       <span key={wd} className={days.includes(wd) ? 'day on' : 'day'}>
                         {WEEKDAYS_SHORT[wd][0]}
                       </span>

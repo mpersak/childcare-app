@@ -5,7 +5,7 @@ import { useVault } from '../lib/vault'
 import { Avatar, Badge, Card, PageHead } from '../components/ui'
 import { calcBilling, scheduleFor } from '../lib/billing'
 import { formatMoney } from '../lib/money'
-import { addDays, formatDate, formatHours, today, WEEKDAYS } from '../lib/dates'
+import { addDays, formatDate, formatHours, today, WEEKDAYS, WORKING_DAYS_PER_WEEK } from '../lib/dates'
 import type { AttendanceStatus, SignatureRecord } from '../types'
 
 const STATUSES: AttendanceStatus[] = ['present', 'absent', 'sick', 'holiday']
@@ -240,7 +240,7 @@ function WeekStrip({ date, onPick }: { date: string; onPick(d: string): void }) 
     return d.toISOString().slice(0, 10)
   })()
 
-  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+  const days = Array.from({ length: WORKING_DAYS_PER_WEEK }, (_, i) => addDays(monday, i))
 
   return (
     <div className="week-strip">

@@ -9,7 +9,8 @@ import {
 import { formatMoney } from '../lib/money'
 import {
   addDays, addMonths, endOfMonth, formatDate, formatHours, fromISODate,
-  minutesToTime, startOfMonth, startOfWeek, timeToMinutes, today, WEEKDAYS, WEEKDAYS_SHORT,
+  isWorkingDay, minutesToTime, startOfMonth, startOfWeek, timeToMinutes, today,
+  WEEKDAYS, WEEKDAYS_SHORT, WORKING_DAYS_PER_WEEK, WORKING_WEEKDAYS,
 } from '../lib/dates'
 
 type View = 'day' | 'week' | 'month'
@@ -217,7 +218,7 @@ function DayView({ date }: { date: string }) {
 function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
   const { db } = useStore()
   const monday = startOfWeek(date)
-  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+  const days = Array.from({ length: WORKING_DAYS_PER_WEEK }, (_, i) => addDays(monday, i))
 
   const perDay = useMemo(() => days.map(d => {
     const rows = buildDay(db, d)
@@ -303,7 +304,11 @@ function MonthView({ date, onPick }: { date: string; onPick(d: string): void }) 
     let cur = start
     while (cur <= end) {
       const week: string[] = []
-      for (let i = 0; i < 7; i++) { week.push(cur); cur = addDays(cur, 1) }
+      // Step over all seven days but keep only the working ones.
+      for (let i = 0; i < 7; i++) {
+        if (isWorkingDay(cur)) week.push(cur)
+        cur = addDays(cur, 1)
+      }
       out.push(week)
     }
     return out
@@ -328,7 +333,7 @@ function MonthView({ date, onPick }: { date: string; onPick(d: string): void }) 
     >
       <div className="calendar">
         <div className="cal-head">
-          {[1, 2, 3, 4, 5, 6, 0].map(i => <div key={i}>{WEEKDAYS_SHORT[i]}</div>)}
+          {WORKING_WEEKDAYS.map(i => <div key={i}>{WEEKDAYS_SHORT[i]}</div>)}
         </div>
 
         {weeks.map((week, wi) => (

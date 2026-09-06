@@ -9,6 +9,7 @@ import { amountDue, statusLabel } from '../lib/invoicing'
 import { formatMoney } from '../lib/money'
 import {
   addMonths, ageFrom, endOfMonth, formatDate, formatHours, startOfMonth, today, WEEKDAYS,
+  WORKING_WEEKDAYS,
 } from '../lib/dates'
 import { uid, CHILD_COLOURS } from '../lib/defaults'
 import type { ChildStatus, NoteCategory } from '../types'
@@ -216,7 +217,7 @@ function ScheduleTab({ childId }: { childId: string }) {
       <div className="toolbar">
         <select className="input" value={draft.weekday}
                 onChange={e => setDraft({ ...draft, weekday: Number(e.target.value) })}>
-          {[1, 2, 3, 4, 5, 6, 0].map(wd => <option key={wd} value={wd}>{WEEKDAYS[wd]}</option>)}
+          {WORKING_WEEKDAYS.map(wd => <option key={wd} value={wd}>{WEEKDAYS[wd]}</option>)}
         </select>
         <input className="input" type="time" value={draft.start}
                onChange={e => setDraft({ ...draft, start: e.target.value })} />

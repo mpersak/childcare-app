@@ -143,3 +143,14 @@ export function everyMinutes(from: string, to: string, step: number): string[] {
   for (let t = s + step; t < e; t += step) out.push(minutesToTime(t))
   return out
 }
+
+/**
+ * The days the service actually runs, Monday to Friday. Weekends are not shown
+ * anywhere and cannot be booked, so nothing can hide on a day nobody looks at.
+ */
+export const WORKING_WEEKDAYS = [1, 2, 3, 4, 5]
+export const WORKING_DAYS_PER_WEEK = WORKING_WEEKDAYS.length
+
+export function isWorkingDay(date: ISODate): boolean {
+  return WORKING_WEEKDAYS.includes(weekdayOf(date))
+}

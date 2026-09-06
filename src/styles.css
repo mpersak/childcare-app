@@ -356,7 +356,7 @@ textarea.input { resize: vertical; }
 .seg.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
 
 .calendar { display: flex; flex-direction: column; gap: 5px; }
-.cal-head, .cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.cal-head, .cal-week { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
 .cal-head div {
   font-size: 11px; color: var(--text-muted); text-transform: uppercase;
   letter-spacing: .05em; padding: 2px 6px; font-weight: 600;
@@ -461,7 +461,7 @@ textarea.input { resize: vertical; }
 .key.occ { background: var(--accent); opacity: .55; }
 
 /* -------------------------------- week grid ----------------------------- */
-.weekgrid { display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); gap: 4px; }
+.weekgrid { display: grid; grid-template-columns: 52px repeat(5, minmax(0, 1fr)); gap: 4px; }
 .wk-times { position: relative; }
 .wk-time {
   position: absolute; right: 6px; transform: translateY(-50%);
@@ -498,7 +498,7 @@ textarea.input { resize: vertical; }
 .wk-block.booked { opacity: .92; }
 
 @media (max-width: 900px) {
-  .weekgrid { overflow-x: auto; grid-template-columns: 44px repeat(7, minmax(88px, 1fr)); }
+  .weekgrid { overflow-x: auto; grid-template-columns: 44px repeat(5, minmax(96px, 1fr)); }
   .timeline { --tl-gutter: 104px; }
 }
 
@@ -618,7 +618,7 @@ textarea.input { resize: vertical; }
 .backups { margin-top: 12px; }
 
 /* ---------------------------- attendance week strip --------------------- */
-.week-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.week-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 .week-day {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 9px 4px; border: 1px solid var(--border); border-radius: var(--radius-sm);
