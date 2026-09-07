@@ -5,7 +5,7 @@ import { useVault } from '../lib/vault'
 import { ActionButton, Avatar, Badge, Card, PageHead } from '../components/ui'
 import { calcBilling, scheduleFor } from '../lib/billing'
 import { formatMoney } from '../lib/money'
-import { addDays, formatDate, formatHours, today, WEEKDAYS, WORKING_DAYS_PER_WEEK } from '../lib/dates'
+import { addDays, formatDate, formatHours, today, WEEKDAYS, WORKING_DAYS_PER_WEEK, stepWorkingDay } from '../lib/dates'
 import type { AttendanceStatus, SignatureRecord } from '../types'
 
 const STATUSES: AttendanceStatus[] = ['present', 'absent', 'sick', 'holiday']
@@ -59,9 +59,9 @@ export default function Attendance() {
         subtitle={`${WEEKDAYS[new Date(date + 'T00:00:00').getDay()]} · ${formatDate(date, locale)}`}
         actions={
           <>
-            <button className="btn" onClick={() => setDate(addDays(date, -1))} aria-label="Previous day">‹</button>
+            <button className="btn" onClick={() => setDate(stepWorkingDay(date, -1))} aria-label="Previous day">‹</button>
             <input className="input" type="date" value={date} onChange={e => setDate(e.target.value || today())} />
-            <button className="btn" onClick={() => setDate(addDays(date, 1))} aria-label="Next day">›</button>
+            <button className="btn" onClick={() => setDate(stepWorkingDay(date, 1))} aria-label="Next day">›</button>
             <button className="btn" onClick={() => setDate(today())}>Today</button>
           </>
         }

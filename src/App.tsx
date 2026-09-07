@@ -12,7 +12,6 @@ import Attendance from './pages/Attendance'
 import SignInOut from './pages/SignInOut'
 import SignSheet from './pages/SignSheet'
 import Activities from './pages/Activities'
-import ActivityReport from './pages/ActivityReport'
 import Charts from './pages/Charts'
 import Calendar from './pages/Calendar'
 import Children from './pages/Children'
@@ -121,7 +120,7 @@ function TeacherShell() {
           <Route path="signin" element={<SignInOut />} />
           <Route path="sheet" element={<SignSheet />} />
           <Route path="activities" element={<Activities />} />
-          <Route path="activity-report" element={<ActivityReport />} />
+          <Route path="activity-report" element={<Charts />} />
           <Route path="charts" element={<Charts />} />
           <Route path="calendar" element={<Calendar />} />
           <Route path="children" element={<Children />} />

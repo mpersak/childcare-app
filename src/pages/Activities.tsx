@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useStore, childName } from '../lib/store'
 import { Avatar, Badge, Card, PageHead } from '../components/ui'
-import { addDays, formatDate, minutesToTime, nowTime, timeToMinutes, today } from '../lib/dates'
+import { formatDate, minutesToTime, nowTime, timeToMinutes, today, stepWorkingDay } from '../lib/dates'
+import { SUNBLOCK_LABEL, isSunblock } from '../lib/chartdata'
 import type { Activity, NappyKind } from '../types'
 
 const NAPPIES: { kind: NappyKind; label: string; icon: string }[] = [
@@ -33,12 +34,11 @@ export default function Activities() {
         subtitle={formatDate(date, db.settings.locale)}
         actions={
           <>
-            <button className="btn" onClick={() => setDate(addDays(date, -1))} aria-label="Previous day">‹</button>
+            <button className="btn" onClick={() => setDate(stepWorkingDay(date, -1))} aria-label="Previous day">‹</button>
             <input className="input" type="date" value={date}
                    onChange={e => setDate(e.target.value || today())} />
-            <button className="btn" onClick={() => setDate(addDays(date, 1))} aria-label="Next day">›</button>
+            <button className="btn" onClick={() => setDate(stepWorkingDay(date, 1))} aria-label="Next day">›</button>
             <button className="btn" onClick={() => setDate(today())}>Today</button>
-            <Link className="btn" to="/activity-report">Report</Link>
             <Link className="btn" to="/charts">Charts</Link>
           </>
         }
@@ -106,6 +106,10 @@ function ChildActivities({ childId, date }: { childId: string; date: string }) {
             {n.label}
           </button>
         ))}
+        <button className="act-btn" onClick={() => actions.addOther(childId, SUNBLOCK_LABEL, date)}>
+          <span className="act-icon">🧴</span>
+          Sun block
+        </button>
       </div>
 
       {/* Medicine, sunscreen, a meal — anything worth a timestamped line. */}
@@ -174,7 +178,7 @@ function ActivityRow({ activity }: { activity: Activity }) {
     return (
       <li className="act-row">
         <span className="act-time">{activity.time}</span>
-        <span className="act-icon">💊</span>
+        <span className="act-icon">{isSunblock(activity.label) ? '🧴' : '💊'}</span>
         <span>{activity.label}</span>
         <button className="link danger" onClick={() => actions.deleteActivity(activity.id)}>remove</button>
       </li>

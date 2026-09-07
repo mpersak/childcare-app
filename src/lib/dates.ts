@@ -186,3 +186,15 @@ export function weekLabel(monday: ISODate, locale = 'en-NZ'): string {
   const year = to.getFullYear() === new Date().getFullYear() ? '' : ` ${to.getFullYear()}`
   return `${f} – ${t}${year}`
 }
+
+/**
+ * Moves one working day in either direction, stepping over the weekend.
+ * Used by the day-by-day screens so the arrows never land on a Saturday.
+ */
+export function stepWorkingDay(date: ISODate, direction: number): ISODate {
+  const step = direction >= 0 ? 1 : -1
+  let next = addDays(date, step)
+  let guard = 0
+  while (!isWorkingDay(next) && guard++ < 10) next = addDays(next, step)
+  return next
+}

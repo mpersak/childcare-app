@@ -4,7 +4,7 @@ import { useVault } from '../lib/vault'
 import { PageHead } from '../components/ui'
 import { SignaturePad } from '../components/SignaturePad'
 import { scheduleFor } from '../lib/billing'
-import { formatDate, today } from '../lib/dates'
+import { formatDate, isWorkingDay, today } from '../lib/dates'
 
 type Pending = { childId: string; direction: 'in' | 'out' } | null
 
@@ -57,7 +57,14 @@ export default function SignInOut() {
 
       {justDone && <div className="banner success">{justDone}</div>}
 
-      {tiles.length === 0 ? (
+      {!isWorkingDay(date) && (
+        <div className="banner">
+          The service does not run at the weekend, so there is nothing to sign in today.
+          A one-off can still be recorded on the attendance sheet.
+        </div>
+      )}
+
+      {!isWorkingDay(date) ? null : tiles.length === 0 ? (
         <div className="card"><div className="card-body">
           <p className="muted">No active children to sign in.</p>
         </div></div>

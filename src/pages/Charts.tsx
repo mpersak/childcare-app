@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useStore, childName } from '../lib/store'
 import { ActionButton, Card, Field, PageHead } from '../components/ui'
 import { openDraft, trimBody } from '../lib/email'
+import { activitiesCSV, download } from '../lib/exporters'
 import {
   CARE_ROWS, CHECK_OFFSETS, careBlocks, sleepBlocks,
 } from '../lib/chartdata'
@@ -90,6 +91,8 @@ export default function Charts() {
           </Field>
           <span className="spacer" />
           <ActionButton icon="🖨" label="Print / save PDF" onClick={() => window.print()} />
+          <ActionButton icon="⬇" label="CSV of the log"
+                        onClick={() => download(`activities-${weekStart}.csv`, activitiesCSV(db, weekStart, weekEnd), 'text/csv')} />
           <ActionButton icon="✉" label="Email chart" primary
                         disabled={!s.activityEmail || count === 0} onClick={emailChart} />
         </div>
@@ -102,8 +105,8 @@ export default function Charts() {
           <p className="muted small">Set the activity email address in Settings before emailing.</p>
         )}
         <p className="muted small">
-          Room temperature, bottle feeds and sun block are not recorded in the app, so those
-          columns print blank for a pen. Save the PDF first, then attach it to the message.
+          Room temperature and bottle feeds are not recorded in the app, so those columns
+          print blank for a pen. Save the PDF first, then attach it to the message.
         </p>
       </Card>
 
@@ -242,6 +245,7 @@ function CareChart({ blocks }: { blocks: ReturnType<typeof careBlocks> }) {
                   <td className="bn-sub">Time<br />Prepared:</td>
                   <td className="bn-sub">Amount<br />given (mls):</td>
                   <td className="bn-sub">Time<br />given:</td>
+                  <td className="bn-value">{row.sunblock}</td>
                   {r === 0 && <td className="bn-blank" rowSpan={CARE_ROWS} />}
                 </tr>
               ))}

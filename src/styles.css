@@ -41,7 +41,7 @@
   --pill: 999px;
 }
 
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
 
@@ -160,7 +160,7 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-siz
 .card-body { padding: 16px; }
 
 .split { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; align-items: start; }
-@media (max-width: 1080px) { .split { grid-template-columns: 1fr; } }
+@media screen and (max-width: 1080px) { .split { grid-template-columns: 1fr; } }
 
 .stat-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -240,7 +240,7 @@ textarea.input { resize: vertical; }
 
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .form-grid.tight-grid { gap: 8px; }
-@media (max-width: 620px) { .form-grid { grid-template-columns: 1fr; } }
+@media screen and (max-width: 620px) { .form-grid { grid-template-columns: 1fr; } }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .field-wide { grid-column: 1 / -1; }
 .field-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
@@ -497,7 +497,7 @@ textarea.input { resize: vertical; }
 .wk-block small { font-size: 9px; color: rgba(255, 255, 255, .85); }
 .wk-block.booked { opacity: .92; }
 
-@media (max-width: 900px) {
+@media screen and (max-width: 900px) {
   .weekgrid { overflow-x: auto; grid-template-columns: 44px repeat(5, minmax(96px, 1fr)); }
   .timeline { --tl-gutter: 104px; }
 }
@@ -595,7 +595,7 @@ textarea.input { resize: vertical; }
 
 /* ------------------------------- invoices ------------------------------- */
 .invoice-layout { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; align-items: start; }
-@media (max-width: 1080px) { .invoice-layout { grid-template-columns: 1fr; } }
+@media screen and (max-width: 1080px) { .invoice-layout { grid-template-columns: 1fr; } }
 
 .invoice-doc {
   background: var(--surface-1); border: 1px solid var(--border);
@@ -841,7 +841,7 @@ textarea.input { resize: vertical; }
 .nav-scrim { display: none; }
 
 /* --- iPad and small laptops: tighter sidebar, denser spacing --- */
-@media (max-width: 1080px) {
+@media screen and (max-width: 1080px) {
   .shell { grid-template-columns: 196px 1fr; }
   .content { padding: 18px 18px 48px; }
   .split { grid-template-columns: 1fr; }
@@ -851,7 +851,7 @@ textarea.input { resize: vertical; }
 }
 
 /* --- Phones and iPads in portrait: drawer navigation --- */
-@media (max-width: 820px) {
+@media screen and (max-width: 820px) {
   .shell { display: block; }
 
   .topbar {
@@ -919,7 +919,7 @@ textarea.input { resize: vertical; }
 }
 
 /* --- Narrow phones --- */
-@media (max-width: 480px) {
+@media screen and (max-width: 480px) {
   .kiosk-grid { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .stat { padding: 10px 12px; }
@@ -931,7 +931,7 @@ textarea.input { resize: vertical; }
 }
 
 /* Touch devices: no hover-only affordances, and comfortable hit targets. */
-@media (hover: none) {
+@media screen and (hover: none) {
   .btn, .pill, .seg, .nav-link, .pin-key { min-height: 42px; }
   .sig-mark:hover .sig-pop { display: none; }
   .sig-mark:focus-visible .sig-pop { display: block; }
@@ -989,7 +989,7 @@ textarea.input { resize: vertical; }
 .sign-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .sign-actions .sign-name { flex: 1; min-width: 180px; }
 
-@media (max-width: 820px) {
+@media screen and (max-width: 820px) {
   .signer-chip { flex: 1 1 44%; }
   .sign-actions { flex-direction: column; align-items: stretch; }
   .sign-actions .btn { width: 100%; }
@@ -1007,11 +1007,11 @@ textarea.input { resize: vertical; }
 .sched-head strong { font-size: 14px; }
 .sched-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 
-@media (max-width: 820px) {
+@media screen and (max-width: 820px) {
   .sched-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sched-head { gap: 8px; }
 }
-@media (max-width: 420px) {
+@media screen and (max-width: 420px) {
   .sched-fields { grid-template-columns: 1fr; }
 }
 
@@ -1041,7 +1041,7 @@ textarea.input { resize: vertical; }
 
 .other-add { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
 .other-what { flex: 1 1 220px; min-width: 180px; }
-@media (max-width: 820px) {
+@media screen and (max-width: 820px) {
   .other-add { flex-direction: column; align-items: stretch; }
   .other-add .btn { width: 100%; }
 }
@@ -1122,11 +1122,28 @@ textarea.input { resize: vertical; }
 
 /* --------------------------------- print -------------------------------- */
 @media print {
-  .sidebar, .page-head, .no-print, .tabs, .sign-overlay { display: none !important; }
+  .sidebar, .topbar, .nav-scrim, .page-head, .no-print, .tabs,
+  .sign-overlay, .modal-backdrop { display: none !important; }
   .shell { display: block; }
-  .content { padding: 0; }
-  .invoice-layout { display: block; }
+  .content { padding: 0; max-width: none; }
+  .invoice-layout, .split { display: block; }
   .invoice-doc { border: 0; box-shadow: none; padding: 0; }
+  .card { border: 0; box-shadow: none; margin: 0; }
+  .card-head { display: none; }
+  .card-body { padding: 0; }
+
+  /* Paper has no scrollbars: a clipped container would print a cropped table. */
+  .table-scroll, .sheet, .bn-sheet, .card-body, .weekgrid, .timeline {
+    overflow: visible !important;
+  }
+  .table, .attendance-table, .sheet-table, .bn-table { min-width: 0 !important; }
+
+  /* Always print on white with black ink, whatever the screen theme is. */
+  :root {
+    --bg: #fff; --surface-1: #fff; --surface-2: #fff; --surface-3: #fff;
+    --text-primary: #000; --text-secondary: #222; --text-muted: #444;
+    --border: #999; --border-strong: #666; --grid: #ccc; --shadow: none;
+  }
   body { background: #fff; color: #000; }
   a { color: #000; text-decoration: none; }
 }

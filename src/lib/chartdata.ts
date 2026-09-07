@@ -67,6 +67,7 @@ export interface CareRow {
   soiled: boolean
   dry: boolean
   medication: string
+  sunblock: string
 }
 
 export interface CareBlock {
@@ -74,6 +75,13 @@ export interface CareBlock {
   child: string
   date: ISODate
   rows: CareRow[]
+}
+
+/** Anything logged as sun block, however it was typed. */
+export const SUNBLOCK_LABEL = 'Sun block'
+
+export function isSunblock(label?: string): boolean {
+  return /sun\s*block|sunscreen|sunblock/i.test(label ?? '')
 }
 
 /** Rows per child block on the printed care routines chart. */
@@ -99,10 +107,14 @@ export function careBlocks(db: Database, from: ISODate, to: ISODate, childId = '
         wet: a.nappy === 'wet' || a.nappy === 'wet+stools',
         soiled: a.nappy === 'stools' || a.nappy === 'wet+stools',
         dry: a.nappy === 'dry',
-        medication: a.kind === 'other' ? (a.label ?? '') : '',
+        // Sun block has its own column on the form, so route it there.
+        medication: a.kind === 'other' && !isSunblock(a.label) ? (a.label ?? '') : '',
+        sunblock: a.kind === 'other' && isSunblock(a.label) ? a.time : '',
       }))
       // Pad to the fixed number of printed rows so the form keeps its shape.
-      while (rows.length < CARE_ROWS) rows.push({ time: '', wet: false, soiled: false, dry: false, medication: '' })
+      while (rows.length < CARE_ROWS) {
+        rows.push({ time: '', wet: false, soiled: false, dry: false, medication: '', sunblock: '' })
+      }
 
       return {
         key,

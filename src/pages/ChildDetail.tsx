@@ -278,7 +278,7 @@ function ScheduleTab({ childId }: { childId: string }) {
 }
 
 function AttendanceTab({ childId }: { childId: string }) {
-  const { db } = useStore()
+  const { db, actions } = useStore()
   const { currency, locale } = db.settings
   const [month, setMonth] = useState(startOfMonth(today()).slice(0, 7))
 
@@ -316,7 +316,8 @@ function AttendanceTab({ childId }: { childId: string }) {
   <table className="table">
             <thead>
               <tr><th>Date</th><th>Status</th><th>In</th><th>Out</th>
-                  <th className="num">Hours</th><th className="num">Charge</th><th>Invoice</th></tr>
+                  <th className="num">Hours</th><th className="num">Charge</th><th>Invoice</th>
+                  <th /></tr>
             </thead>
             <tbody>
               {rows.map(({ r, b, inv }) => (
@@ -328,6 +329,17 @@ function AttendanceTab({ childId }: { childId: string }) {
                   <td className="num">{b.billedHours > 0 ? formatHours(b.billedHours) : '—'}</td>
                   <td className="num">{b.amount > 0 ? formatMoney(b.amount, currency, locale) : '—'}</td>
                   <td>{inv ? <Link to={`/invoices/${inv.id}`}>{inv.number}</Link> : <span className="muted">not billed</span>}</td>
+                  <td className="right">
+                    {inv
+                      ? <span className="muted small">billed</span>
+                      : <ConfirmButton
+                          className="btn small danger"
+                          confirmLabel="Delete?"
+                          onConfirm={() => actions.deleteAttendance(r.id)}
+                        >
+                          Delete
+                        </ConfirmButton>}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -336,7 +348,7 @@ function AttendanceTab({ childId }: { childId: string }) {
                 <td colSpan={4} className="right"><strong>Month</strong></td>
                 <td className="num"><strong>{formatHours(hours)}</strong></td>
                 <td className="num"><strong>{formatMoney(value, currency, locale)}</strong></td>
-                <td />
+                <td /><td />
               </tr>
             </tfoot>
           </table>
