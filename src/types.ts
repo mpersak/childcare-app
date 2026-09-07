@@ -271,6 +271,12 @@ export interface Settings {
   coordinatorEmail: string
   /** Which client the Email buttons hand off to. */
   emailClient: 'gmail' | 'default'
+  /**
+   * The service's own logo, as a data URL, printed on the charts. Supplied by
+   * the user from the artwork the service gave them — the app never draws
+   * anyone else's mark.
+   */
+  serviceLogo: string
 
   /** Google Cloud OAuth client ID for Drive backups. Empty disables Drive. */
   driveClientId: string

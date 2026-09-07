@@ -1057,6 +1057,69 @@ textarea.input { resize: vertical; }
 .person { cursor: pointer; }
 .person:hover { box-shadow: inset 0 0 0 1px var(--accent); }
 
+
+/* ------------------------- service charts (printed) ---------------------- */
+/* Laid out to match the paper forms. Colours taken from the service's own
+   artwork; the logo itself is uploaded by the user, never drawn here. */
+.bn-sheet {
+  --bn-green: #82c341;
+  --bn-head: #d7e04a;
+  --bn-head-soft: #eaf0a0;
+  --bn-line: #4a4a4a;
+  background: #fff; color: #111;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 18px; overflow-x: auto;
+}
+.bn-head { margin-bottom: 10px; }
+.bn-titlerow { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.bn-title { color: var(--bn-green); font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.bn-logo { height: 46px; width: auto; }
+.bn-logo-slot {
+  height: 46px; min-width: 100px; border: 1px dashed var(--border-strong);
+  display: grid; place-items: center; font-size: 11px; color: var(--text-muted);
+}
+.bn-educator, .bn-idrow {
+  display: flex; align-items: stretch; border: 1px solid var(--bn-line);
+  margin-top: 6px; font-size: 12px;
+}
+.bn-label {
+  background: var(--bn-head); font-weight: 700; padding: 4px 8px;
+  border-right: 1px solid var(--bn-line); white-space: nowrap;
+}
+.bn-fill { flex: 1; padding: 4px 8px; min-width: 40px; }
+.bn-idrow .bn-label:not(:first-child) { border-left: 1px solid var(--bn-line); }
+.bn-note { font-size: 10.5px; line-height: 1.35; margin: 8px 0 2px; }
+
+.bn-block { margin-bottom: 12px; }
+.bn-table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+.bn-table th, .bn-table td { border: 1px solid var(--bn-line); padding: 3px 4px; }
+.bn-th { background: var(--bn-head); font-weight: 700; text-align: center; }
+.bn-th-soft { background: var(--bn-head-soft); font-weight: 700; text-align: center; }
+.bn-th-soft.narrow { width: 30px; }
+.bn-rowlabel { font-weight: 600; width: 84px; }
+.bn-value { width: 56px; }
+.bn-check { text-align: center; width: 46px; height: 26px; position: relative; }
+.bn-offset { position: absolute; top: 1px; left: 3px; font-size: 9px; color: #666; }
+.bn-checktime { display: block; padding-top: 8px; font-size: 10px; }
+.bn-meridiem { width: 40px; text-align: center; vertical-align: middle; }
+.bn-blank { }
+.bn-tick { text-align: center; width: 30px; font-weight: 700; }
+.bn-sub { font-size: 9.5px; color: #333; }
+.bn-inline { font-weight: 400; }
+.bn-foot { font-size: 9.5px; color: #444; margin-top: 8px; }
+.logo-preview { height: 34px; width: auto; background: #fff; border: 1px solid var(--border); padding: 2px; }
+
+@media print {
+  .bn-sheet { border: 0; padding: 0; border-radius: 0; overflow: visible; }
+  .bn-logo-slot { display: none; }
+  .bn-block { break-inside: avoid; }
+  .page-break { break-before: page; }
+  @page { size: A4 portrait; margin: 10mm; }
+}
+
+.cell-sub { display: block; font-size: 10px; font-style: normal; color: var(--text-muted); font-weight: 400; }
+
 /* --------------------------------- print -------------------------------- */
 @media print {
   .sidebar, .page-head, .no-print, .tabs, .sign-overlay { display: none !important; }

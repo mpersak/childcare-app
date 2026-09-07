@@ -10,6 +10,7 @@ const NAV = [
   { to: '/signin', label: 'Sign in / out', icon: '👋' },
   { to: '/attendance', label: 'Attendance', icon: '📋' },
   { to: '/activities', label: 'Activities', icon: '🍼' },
+  { to: '/charts', label: 'Charts', icon: '🗒' },
   { to: '/calendar', label: 'Calendar', icon: '📅' },
   { to: '/sheet', label: 'Sign in sheet', icon: '📄' },
   { to: '/children', label: 'Children', icon: '🧒' },

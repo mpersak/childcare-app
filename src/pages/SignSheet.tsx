@@ -278,6 +278,23 @@ export function SheetSettings() {
           <input className="input" value={s.orgRegion}
                  onChange={e => set({ orgRegion: e.target.value })} />
         </Field>
+        <Field label="Service logo" wide
+               hint="The artwork the service gave you. Printed on the sleep and care charts.">
+          <div className="row gap wrap">
+            {s.serviceLogo && <img className="logo-preview" src={s.serviceLogo} alt="" />}
+            <input
+              type="file" accept="image/png,image/jpeg,image/svg+xml"
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) void loadLogo(file).then(url => set({ serviceLogo: url }))
+                e.target.value = ''
+              }}
+            />
+            {s.serviceLogo && (
+              <button className="btn small" onClick={() => set({ serviceLogo: '' })}>Remove</button>
+            )}
+          </div>
+        </Field>
         <Field label="Email opens in" wide>
           <select className="input" value={s.emailClient}
                   onChange={e => set({ emailClient: e.target.value as 'gmail' | 'default' })}>
@@ -292,4 +309,41 @@ export function SheetSettings() {
       </p>
     </Card>
   )
+}
+
+/**
+ * Reads a logo file and scales it down before storing.
+ *
+ * It lives inside the encrypted document that syncs on every change, so a
+ * full-resolution upload would be re-uploaded with every edit. 320px wide is
+ * more than a printed chart corner needs.
+ */
+async function loadLogo(file: File): Promise<string> {
+  const raw = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error('Could not read that file.'))
+    reader.readAsDataURL(file)
+  })
+
+  // SVG has no pixels to resize and is already small.
+  if (file.type === 'image/svg+xml') return raw
+
+  return new Promise<string>(resolve => {
+    const img = new Image()
+    img.onload = () => {
+      const MAX = 320
+      const scale = Math.min(1, MAX / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(img.width * scale))
+      canvas.height = Math.max(1, Math.round(img.height * scale))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { resolve(raw); return }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/png'))
+    }
+    // If it will not decode, keep the original rather than losing the upload.
+    img.onerror = () => resolve(raw)
+    img.src = raw
+  })
 }

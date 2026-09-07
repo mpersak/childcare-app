@@ -52,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
   orgRegion: '',
   coordinatorEmail: '',
   emailClient: 'gmail',
+  serviceLogo: '',
 
   driveClientId: '',
   driveFolder: 'Childcare backups',

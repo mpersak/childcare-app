@@ -167,11 +167,26 @@ export default function Attendance() {
                       </td>
                       <td className="num">
                         {billing && billing.billedHours > 0 ? formatHours(billing.billedHours) : '—'}
+                        {/* Billed hours come from the booking, so they do not move when
+                            the times are edited. Show the time actually on site as well,
+                            or the column looks stuck. */}
+                        {billing && billing.rawMinutes > 0
+                          && Math.abs(billing.rawMinutes - billing.billedMinutes) >= 1 && (
+                          <em className="cell-sub">{formatHours(billing.rawMinutes / 60)} on site</em>
+                        )}
                       </td>
                       <td className="num">
                         {billing && billing.amount > 0
                           ? <span title={billing.adjustments.join(' · ')}>
                               {formatMoney(billing.amount, currency, locale)}
+                              {/* Name the late fee, so a charge that moved while the
+                                  hours did not is accounted for on the row. */}
+                              {billing.lateFee > 0 && (
+                                <em className="cell-sub">
+                                  incl. {formatMoney(billing.lateFee, currency, locale)} late
+                                  {' '}({billing.lateMinutes} min)
+                                </em>
+                              )}
                             </span>
                           : record && status !== 'present'
                             ? <label className="check tiny">

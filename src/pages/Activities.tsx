@@ -39,6 +39,7 @@ export default function Activities() {
             <button className="btn" onClick={() => setDate(addDays(date, 1))} aria-label="Next day">›</button>
             <button className="btn" onClick={() => setDate(today())}>Today</button>
             <Link className="btn" to="/activity-report">Report</Link>
+            <Link className="btn" to="/charts">Charts</Link>
           </>
         }
       />
