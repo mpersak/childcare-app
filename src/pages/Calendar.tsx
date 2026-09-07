@@ -20,11 +20,14 @@ export default function Calendar() {
   const [params, setParams] = useSearchParams()
   const view = (params.get('view') as View) || 'week'
   const date = params.get('date') || today()
+  // Days off are shown by default; the toggle is for when they clutter planning.
+  const showAway = params.get('away') !== '0'
 
-  const update = (patch: { view?: View; date?: string }) => setParams(prev => {
+  const update = (patch: { view?: View; date?: string; away?: boolean }) => setParams(prev => {
     const next = new URLSearchParams(prev)
     if (patch.view) next.set('view', patch.view)
     if (patch.date) next.set('date', patch.date)
+    if (patch.away !== undefined) next.set('away', patch.away ? '1' : '0')
     return next
   }, { replace: true })
 
@@ -56,13 +59,20 @@ export default function Calendar() {
             <button className="btn" onClick={() => step(-1)} aria-label="Previous">‹</button>
             <button className="btn" onClick={() => update({ date: today() })}>Today</button>
             <button className="btn" onClick={() => step(1)} aria-label="Next">›</button>
+            {view !== 'day' && (
+              <label className="check">
+                <input type="checkbox" checked={showAway}
+                       onChange={e => update({ away: e.target.checked })} />
+                Days off
+              </label>
+            )}
           </>
         }
       />
 
       {view === 'day' && <DayView date={date} />}
-      {view === 'week' && <WeekView date={date} onPick={d => update({ view: 'day', date: d })} />}
-      {view === 'month' && <MonthView date={date} onPick={d => update({ view: 'day', date: d })} />}
+      {view === 'week' && <WeekView date={date} showAway={showAway} onPick={d => update({ view: 'day', date: d })} />}
+      {view === 'month' && <MonthView date={date} showAway={showAway} onPick={d => update({ view: 'day', date: d })} />}
     </>
   )
 }
@@ -215,8 +225,11 @@ function DayView({ date }: { date: string }) {
 
 /* -------------------------------------------------------------------------- */
 
-function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
+function WeekView({ date, showAway, onPick }: {
+  date: string; showAway: boolean; onPick(d: string): void
+}) {
   const { db } = useStore()
+  const nav = useNavigate()
   const monday = startOfWeek(date)
   const days = Array.from({ length: WORKING_DAYS_PER_WEEK }, (_, i) => addDays(monday, i))
 
@@ -226,6 +239,7 @@ function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
     // loses it, which is what made a sick day look like an ordinary booking.
     const items = rows.flatMap(r => {
       const spans = r.booked.length ? r.booked : (r.actual ? [r.actual] : [])
+      if (!showAway && r.status === 'away') return []
       return spans.map(s => ({
         ...s,
         away: r.status === 'away',
@@ -233,7 +247,7 @@ function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
       }))
     })
     return { date: d, rows, items }
-  }), [db, monday])
+  }), [db, monday, showAway])
 
   const win = dayWindow(db, perDay.flatMap(p => p.items))
   const top = (m: number) => ((Math.min(win.to, Math.max(win.from, m)) - win.from) / win.span) * 100
@@ -276,9 +290,14 @@ function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
                 {placed.map(({ item, lane }, i) => {
                   const block = item as TimelineItem & { away: boolean; reason: string }
                   return (
-                    <span
+                    <button
                       key={i}
+                      type="button"
                       className={`wk-block ${block.kind}${block.away ? ' away' : ''}`}
+                      onClick={e => {
+                        e.stopPropagation()
+                        nav(`/attendance?date=${d}&child=${block.childId}`)
+                      }}
                       style={{
                         top: `${top(item.start)}%`,
                         height: `${top(item.end) - top(item.start)}%`,
@@ -287,11 +306,11 @@ function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
                         background: block.colour,
                       }}
                       title={`${block.name} ${minutesToTime(item.start)}–${minutesToTime(item.end)}` +
-                        (block.away ? ` — ${block.reason}` : '')}
+                        (block.away ? ` — ${block.reason}` : '') + ' — tap to edit'}
                     >
                       <em>{block.name.split(' ')[0]}</em>
                       <small>{block.away ? block.reason : minutesToTime(item.start)}</small>
-                    </span>
+                    </button>
                   )
                 })}
               </div>
@@ -305,7 +324,9 @@ function WeekView({ date, onPick }: { date: string; onPick(d: string): void }) {
 
 /* -------------------------------------------------------------------------- */
 
-function MonthView({ date, onPick }: { date: string; onPick(d: string): void }) {
+function MonthView({ date, showAway, onPick }: {
+  date: string; showAway: boolean; onPick(d: string): void
+}) {
   const { db } = useStore()
   const nav = useNavigate()
   const { currency, locale } = db.settings
@@ -357,7 +378,7 @@ function MonthView({ date, onPick }: { date: string; onPick(d: string): void }) 
             {week.map(d => {
               const inMonth = d.slice(0, 7) === anchor.slice(0, 7)
               const closure = db.closures.find(c => c.date === d)
-              const rows = buildDay(db, d)
+              const rows = buildDay(db, d).filter(r => showAway || r.status !== 'away')
               const bookedHours = rows.reduce(
                 (s, r) => s + r.booked.reduce((t, b) => t + (b.end - b.start) / 60, 0), 0)
 
@@ -388,8 +409,8 @@ function MonthView({ date, onPick }: { date: string; onPick(d: string): void }) 
                         key={r.child.id}
                         className={`person state-${r.status}`}
                         style={{ borderColor: r.child.colour }}
-                        onClick={e => { e.stopPropagation(); nav(`/children/${r.child.id}`) }}
-                        title={`${childName(r.child)} — ${r.booked.length
+                        onClick={e => { e.stopPropagation(); nav(`/attendance?date=${d}&child=${r.child.id}`) }}
+                        title={`Edit ${childName(r.child)} — ${r.booked.length
                           ? `${minutesToTime(r.booked[0].start)}–${minutesToTime(r.booked[r.booked.length - 1].end)}`
                           : 'drop-in'}`}
                       >

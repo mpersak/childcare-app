@@ -1046,6 +1046,17 @@ textarea.input { resize: vertical; }
   .other-add .btn { width: 100%; }
 }
 
+/* Arriving from the calendar: make the row you asked for obvious. */
+.row-focus > td { background: var(--accent-soft); }
+.row-focus > td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+
+/* Calendar blocks are buttons now, so strip the default button chrome. */
+.wk-block { border: 0; font: inherit; text-align: left; cursor: pointer; }
+.wk-block:hover { filter: brightness(1.08); }
+.wk-block:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
+.person { cursor: pointer; }
+.person:hover { box-shadow: inset 0 0 0 1px var(--accent); }
+
 /* --------------------------------- print -------------------------------- */
 @media print {
   .sidebar, .page-head, .no-print, .tabs, .sign-overlay { display: none !important; }

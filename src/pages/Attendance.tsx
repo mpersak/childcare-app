@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useStore, childName } from '../lib/store'
 import { useVault } from '../lib/vault'
@@ -14,8 +14,15 @@ export default function Attendance() {
   const { db, actions } = useStore()
   const [params, setParams] = useSearchParams()
   const date = params.get('date') || today()
+  // Arriving from the calendar: highlight and scroll to the child that was tapped.
+  const focusChild = params.get('child') ?? ''
   const { currency, locale } = db.settings
   const [showAll, setShowAll] = useState(false)
+  const focusRef = useRef<HTMLTableRowElement>(null)
+
+  useEffect(() => {
+    if (focusChild) focusRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [focusChild, date])
 
   const setDate = (d: string) => setParams(prev => {
     const next = new URLSearchParams(prev)
@@ -38,9 +45,9 @@ export default function Attendance() {
         return { child, blocks, record, billing, invoice }
       })
       // By default show who is actually booked; drop-ins are one toggle away.
-      .filter(r => showAll || r.blocks.length > 0 || r.record)
+      .filter(r => showAll || r.blocks.length > 0 || r.record || r.child.id === focusChild)
       .sort((a, b) => childName(a.child).localeCompare(childName(b.child)))
-  }, [db, date, showAll])
+  }, [db, date, showAll, focusChild])
 
   const dayHours = rows.reduce((s, r) => s + (r.billing?.billedHours ?? 0), 0)
   const dayValue = rows.reduce((s, r) => s + (r.billing?.amount ?? 0), 0)
@@ -102,7 +109,8 @@ export default function Attendance() {
                     actions.upsertAttendance({ childId: child.id, date, ...patch })
 
                   return (
-                    <tr key={child.id} className={locked ? 'row-locked' : undefined}>
+                    <tr key={child.id} ref={child.id === focusChild ? focusRef : undefined}
+                        className={[locked ? 'row-locked' : '', child.id === focusChild ? 'row-focus' : ''].filter(Boolean).join(' ') || undefined}>
                       <td>
                         <Link className="child-cell" to={`/children/${child.id}`}>
                           <Avatar child={child} size={26} />
