@@ -229,6 +229,23 @@ check('with no booking, the clock is used',
 check('the actual basis charges recorded time, not the booking',
   calcBilling(record({ checkIn: '09:00', checkOut: '12:00' }), actualBasis, [block]).amount, 36)
 
+// --- the booking is snapshotted on the record ------------------------------
+// A day recorded against an 08:00–15:00 booking, where the booking has since
+// been changed to a short morning. The recorded day must not be re-priced.
+const movedBlock: ScheduleBlock = { ...block, start: '09:00', end: '11:00' }
+const snapped = record({ bookedFrom: '08:00', bookedTo: '15:00' })
+
+check('a recorded day keeps the hours it was booked for',
+  calcBilling(snapped, sched, [movedBlock]).billedHours, 7)
+check('without a snapshot it follows the current schedule',
+  calcBilling(record(), sched, [movedBlock]).billedHours, 2)
+
+check('late collection is measured against the booked finish as recorded',
+  calcBilling(record({ bookedFrom: '08:00', bookedTo: '15:00', checkOut: '15:25' }),
+    sched, [movedBlock]).lateBlocks, 2)
+check('a nonsense snapshot falls back to the schedule',
+  calcBilling(record({ bookedFrom: '15:00', bookedTo: '08:00' }), sched, [movedBlock]).billedHours, 2)
+
 // --- week picker -----------------------------------------------------------
 const thisMonday = startOfWeek(today())
 const opts = weekOptions(thisMonday, 4, 1)

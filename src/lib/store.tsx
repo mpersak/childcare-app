@@ -95,6 +95,7 @@ export function StoreProvider({ initial, persist, children }: {
           d.attendance[i] = merged
         } else {
           const child = d.children.find(c => c.id === input.childId)
+          const booked = scheduleFor(d.schedules, input.childId, input.date)
           d.attendance.push({
             id: uid('att'),
             checkIn: null,
@@ -102,6 +103,10 @@ export function StoreProvider({ initial, persist, children }: {
             status: 'present',
             billable: true,
             rate: rateForChild(child, d.settings),
+            // Snapshot the booking alongside the rate, for the same reason.
+            ...(booked.length
+              ? { bookedFrom: booked[0].start, bookedTo: booked[booked.length - 1].end }
+              : {}),
             note: '',
             invoiceId: null,
             createdAt: new Date().toISOString(),
@@ -200,6 +205,8 @@ export function StoreProvider({ initial, persist, children }: {
               status: closed ? 'holiday' : 'present',
               billable: closed ? closed.billable : true,
               rate: rateForChild(child, d.settings),
+              bookedFrom: blocks[0].start,
+              bookedTo: blocks[blocks.length - 1].end,
               note: closed ? closed.name : '',
               invoiceId: null,
               createdAt: new Date().toISOString(),

@@ -74,6 +74,13 @@ export interface AttendanceRecord {
   billable: boolean
   /** Rate snapshot taken when the record is created, so past invoices never drift. */
   rate: number
+  /**
+   * The booked times as they stood on the day, snapshotted for the same reason
+   * as `rate`. Editing a child's weekly booking must not rewrite what the
+   * sign-in sheet says happened last month.
+   */
+  bookedFrom?: string
+  bookedTo?: string
   note: string
   /** Set once the record has been pulled onto an invoice; blocks double billing. */
   invoiceId: string | null

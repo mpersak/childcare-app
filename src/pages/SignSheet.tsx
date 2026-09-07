@@ -67,8 +67,11 @@ export default function SignSheet() {
           no,
           childId: child.id,
           name: childName(child),
-          bookedFrom: blocks[0]?.start ?? '',
-          bookedTo: blocks[blocks.length - 1]?.end ?? '',
+          // The times recorded on the day, so editing a booking later cannot
+          // rewrite a sheet that has already been sent. Older records have no
+          // snapshot, so those fall back to the schedule as it stands.
+          bookedFrom: rec?.bookedFrom ?? blocks[0]?.start ?? '',
+          bookedTo: rec?.bookedTo ?? blocks[blocks.length - 1]?.end ?? '',
           // Prefer the time a guardian actually signed. Auto check-in fills
           // checkIn/checkOut from the booking, which is right for billing but
           // would misreport arrival on a sheet the coordinator reads.

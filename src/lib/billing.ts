@@ -56,6 +56,28 @@ export function scheduledMinutes(blocks: ScheduleBlock[]): number {
   }, 0)
 }
 
+/**
+ * The booking that applies to a record: the snapshot taken on the day if there
+ * is one, otherwise the live schedule.
+ *
+ * Preferring the snapshot is what stops a change to a child's weekly booking
+ * re-pricing days that were already recorded — the same guarantee `rate` gives.
+ */
+export function bookedSpanFor(
+  record: AttendanceRecord, blocks: ScheduleBlock[],
+): { from: number; to: number; minutes: number } | null {
+  const snapFrom = timeToMinutes(record.bookedFrom)
+  const snapTo = timeToMinutes(record.bookedTo)
+  if (snapFrom !== null && snapTo !== null && snapTo > snapFrom) {
+    return { from: snapFrom, to: snapTo, minutes: snapTo - snapFrom }
+  }
+  const minutes = scheduledMinutes(blocks)
+  if (minutes === 0 || blocks.length === 0) return null
+  const from = Math.min(...blocks.map(b => timeToMinutes(b.start) ?? 0))
+  const to = Math.max(...blocks.map(b => timeToMinutes(b.end) ?? 0))
+  return { from, to, minutes }
+}
+
 export function rateForChild(child: Child | undefined, settings: Settings): number {
   if (child && child.hourlyRate !== null && isFinite(child.hourlyRate)) return child.hourlyRate
   return settings.defaultHourlyRate
@@ -114,7 +136,8 @@ export function calcBilling(
   const outM = timeToMinutes(record.checkOut)
   const rawMinutes = inM !== null && outM !== null && outM > inM ? outM - inM : 0
 
-  const booked = scheduledMinutes(scheduleBlocks)
+  const span = bookedSpanFor(record, scheduleBlocks)
+  const booked = span?.minutes ?? 0
   const useSchedule = settings.billBasis === 'schedule' && booked > 0
 
   let base: number
@@ -166,8 +189,8 @@ export function calcBilling(
   // Late collection: only for a day actually attended, and only measured against
   // a booked finish. Whole blocks, after a grace period.
   let lateMinutes = 0, lateBlocks = 0, lateFee = 0
-  if (record.status === 'present' && scheduleBlocks.length && settings.lateBlockFee > 0) {
-    const bookedEnd = Math.max(...scheduleBlocks.map(b => timeToMinutes(b.end) ?? 0))
+  if (record.status === 'present' && span && settings.lateBlockFee > 0) {
+    const bookedEnd = span.to
     if (outM !== null && bookedEnd > 0 && outM > bookedEnd) {
       lateMinutes = outM - bookedEnd
       const chargeable = lateMinutes - Math.max(0, settings.lateGraceMinutes)
