@@ -101,6 +101,10 @@ export function ChargingPanel() {
             <input className="input" type="number" min="0" step="5" value={s.sleepCheckMinutes}
                    onChange={e => set({ sleepCheckMinutes: Number(e.target.value) })} />
           </Field>
+          <Field label="Default room temperature" hint="°C the sleep slider starts at">
+            <input className="input" type="number" min="10" max="30" step="0.5" value={s.defaultRoomTemp}
+                   onChange={e => set({ defaultRoomTemp: Number(e.target.value) })} />
+          </Field>
           <Field label="Default sleep length" hint="Minutes">
             <input className="input" type="number" min="5" step="5" value={s.sleepBlockMinutes}
                    onChange={e => set({ sleepBlockMinutes: Number(e.target.value) })} />

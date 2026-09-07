@@ -121,6 +121,8 @@ export interface Activity {
   nappy?: NappyKind
   /** For an 'other' entry: what it was, e.g. "Medicine — 5ml paracetamol". */
   label?: string
+  /** Sleep only: room temperature in °C, as the safe-sleep form asks for. */
+  roomTemp?: number
   checks?: SleepCheck[]
   note: string
   createdAt: ISOTimestamp
@@ -246,6 +248,8 @@ export interface Settings {
   sleepCheckMinutes: number
   /** Default length of a sleep block, in minutes. */
   sleepBlockMinutes: number
+  /** Room temperature the sleep slider starts at, in °C. */
+  defaultRoomTemp: number
   /** Where the activity report is emailed. */
   activityEmail: string
 

@@ -32,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoCheckIn: true,
   sleepCheckMinutes: 10,
   sleepBlockMinutes: 30,
+  defaultRoomTemp: 20,
   activityEmail: '',
 
   taxEnabled: true,

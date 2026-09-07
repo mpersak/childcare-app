@@ -6,8 +6,8 @@ import { timeToMinutes } from './dates'
  * Turns logged activities into the rows the service's printed charts expect.
  *
  * The paper forms are designed to be filled in by hand, so anything the app does
- * not capture — room temperature, bottle feeds, sun block — is deliberately left
- * empty for a pen rather than invented.
+ * not capture — bottle feeds, comments — is deliberately left empty for a pen
+ * rather than invented.
  */
 
 /** The minute offsets printed across the sleep chart. */
@@ -28,6 +28,8 @@ export interface SleepBlock {
   checked: Record<number, string>
   /** Whether the sleep started before or after midday. */
   meridiem: 'am' | 'pm' | ''
+  /** Room temperature in °C, blank on records made before it was captured. */
+  roomTemp: string
 }
 
 export function sleepBlocks(db: Database, from: ISODate, to: ISODate, childId = 'all'): SleepBlock[] {
@@ -57,6 +59,7 @@ export function sleepBlocks(db: Database, from: ISODate, to: ISODate, childId = 
         awake: a.endTime ?? '',
         checked,
         meridiem: start === null ? '' : start < 12 * 60 ? 'am' : 'pm',
+        roomTemp: a.roomTemp === undefined ? '' : `${a.roomTemp}°C`,
       }
     })
 }

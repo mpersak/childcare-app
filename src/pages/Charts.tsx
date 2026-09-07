@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useStore, childName } from '../lib/store'
 import { ActionButton, Card, Field, PageHead } from '../components/ui'
 import { openDraft, trimBody } from '../lib/email'
-import { activitiesCSV, download } from '../lib/exporters'
+import { activitiesCSV } from '../lib/exporters'
+import { printNode, shareOrDownload } from '../lib/printing'
 import {
   CARE_ROWS, CHECK_OFFSETS, careBlocks, sleepBlocks,
 } from '../lib/chartdata'
@@ -90,9 +91,10 @@ export default function Charts() {
             </select>
           </Field>
           <span className="spacer" />
-          <ActionButton icon="🖨" label="Print / save PDF" onClick={() => window.print()} />
+          <ActionButton icon="🖨" label="Print / save PDF"
+                        onClick={() => printNode('.bn-sheet', `${titleFor} ${range}`)} />
           <ActionButton icon="⬇" label="CSV of the log"
-                        onClick={() => download(`activities-${weekStart}.csv`, activitiesCSV(db, weekStart, weekEnd), 'text/csv')} />
+                        onClick={() => void shareOrDownload(`activities-${weekStart}.csv`, activitiesCSV(db, weekStart, weekEnd), 'text/csv')} />
           <ActionButton icon="✉" label="Email chart" primary
                         disabled={!s.activityEmail || count === 0} onClick={emailChart} />
         </div>
@@ -105,8 +107,8 @@ export default function Charts() {
           <p className="muted small">Set the activity email address in Settings before emailing.</p>
         )}
         <p className="muted small">
-          Room temperature and bottle feeds are not recorded in the app, so those columns
-          print blank for a pen. Save the PDF first, then attach it to the message.
+          Bottle feeds and comments are not recorded in the app, so those columns print
+          blank for a pen. Save the PDF first, then attach it to the message.
         </p>
       </Card>
 
@@ -191,7 +193,7 @@ function SleepChart({ blocks }: { blocks: ReturnType<typeof sleepBlocks> }) {
                   ))}
                   {r === 0 && <td className="bn-meridiem" rowSpan={2}>(am)</td>}
                   {r === 2 && <td className="bn-meridiem">(pm)</td>}
-                  {r === 0 && <td className="bn-blank" rowSpan={3} />}
+                  {r === 0 && <td className="bn-value" rowSpan={3}>{b.roomTemp}</td>}
                   {r === 0 && <td className="bn-blank" rowSpan={3} />}
                 </tr>
               ))}

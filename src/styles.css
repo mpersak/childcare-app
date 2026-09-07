@@ -1120,6 +1120,14 @@ textarea.input { resize: vertical; }
 
 .cell-sub { display: block; font-size: 10px; font-style: normal; color: var(--text-muted); font-weight: 400; }
 
+.temp-slider { flex: 1 1 160px; min-width: 140px; }
+.temp-tag {
+  font-size: 11px; padding: 1px 7px; border-radius: var(--pill);
+  border: 1px solid var(--border-strong); color: var(--text-secondary);
+}
+.temp-tag.cold { border-color: var(--serious); color: var(--serious); font-weight: 700; }
+.temp-slider input[type=range] { width: 100%; accent-color: var(--accent); }
+
 /* --------------------------------- print -------------------------------- */
 @media print {
   .sidebar, .topbar, .nav-scrim, .page-head, .no-print, .tabs,

@@ -58,6 +58,7 @@ function ChildActivities({ childId, date }: { childId: string; date: string }) {
   const child = db.children.find(c => c.id === childId)
   const [sleepStart, setSleepStart] = useState(nowTime())
   const [sleepMinutes, setSleepMinutes] = useState(db.settings.sleepBlockMinutes)
+  const [roomTemp, setRoomTemp] = useState(db.settings.defaultRoomTemp)
   const [other, setOther] = useState('')
   const [otherTime, setOtherTime] = useState(nowTime())
 
@@ -151,8 +152,16 @@ function ChildActivities({ childId, date }: { childId: string; date: string }) {
             onChange={e => setSleepMinutes(Number(e.target.value))}
           />
         </label>
+        <label className="field temp-slider">
+          <span className="field-label">Room {roomTemp}°C</span>
+          <input
+            type="range" min={12} max={30} step={0.5}
+            value={roomTemp}
+            onChange={e => setRoomTemp(Number(e.target.value))}
+          />
+        </label>
         <button className="btn primary"
-                onClick={() => actions.addSleep(childId, sleepStart, sleepMinutes, date)}>
+                onClick={() => actions.addSleep(childId, sleepStart, sleepMinutes, roomTemp, date)}>
           Add sleep
         </button>
       </div>
@@ -206,6 +215,12 @@ function ActivityRow({ activity }: { activity: Activity }) {
       <span className="act-time">{activity.time}–{activity.endTime}</span>
       <span className="act-icon">😴</span>
       <span>Sleep</span>
+      {activity.roomTemp !== undefined && (
+        <span className={activity.roomTemp < 18 ? 'temp-tag cold' : 'temp-tag'}
+              title={activity.roomTemp < 18 ? 'Below the 18°C the form asks for' : 'Room temperature'}>
+          {activity.roomTemp}°C
+        </span>
+      )}
       {checks.length > 0 && (
         <Badge tone={allDone ? 'good' : done > 0 ? 'warn' : 'bad'}>
           {done}/{checks.length} checks

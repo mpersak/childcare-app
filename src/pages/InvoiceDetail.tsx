@@ -7,6 +7,7 @@ import { formatMoney, parseMoney } from '../lib/money'
 import { formatDate, formatHours, today } from '../lib/dates'
 import { uid } from '../lib/defaults'
 import { openDraft, trimBody } from '../lib/email'
+import { printNode } from '../lib/printing'
 import type { InvoiceStatus } from '../types'
 
 const STATUSES: InvoiceStatus[] = ['draft', 'sent', 'paid', 'void']
@@ -44,7 +45,7 @@ export default function InvoiceDetail() {
         actions={
           <>
             <Link className="btn" to="/invoices">All invoices</Link>
-            <button className="btn" onClick={() => window.print()}>Print / PDF</button>
+            <button className="btn" onClick={() => printNode('.invoice-doc', `Invoice ${inv.number}`)}>Print / PDF</button>
             <button
               className="btn primary"
               disabled={!payer?.email}

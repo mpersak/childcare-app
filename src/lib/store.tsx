@@ -36,7 +36,7 @@ interface Actions {
   /** Logs a nappy change at the given time (defaults to now). */
   addNappy(childId: string, nappy: NappyKind, date?: ISODate, time?: string): void
   /** Logs a sleep and generates its safe-sleep checks. */
-  addSleep(childId: string, start: string, minutes: number, date?: ISODate): void
+  addSleep(childId: string, start: string, minutes: number, roomTemp: number, date?: ISODate): void
   updateActivity(id: string, patch: Partial<Activity>): void
   /** Marks one generated sleep check as actually carried out. */
   setSleepCheck(activityId: string, at: string, done: boolean, by: string): void
@@ -236,7 +236,7 @@ export function StoreProvider({ initial, persist, children }: {
           return d
         })
       },
-      addSleep(childId, start, minutes, date = today()) {
+      addSleep(childId, start, minutes, roomTemp, date = today()) {
         mutate(d => {
           const startM = timeToMinutes(start)
           if (startM === null || minutes <= 0) return d
@@ -249,7 +249,7 @@ export function StoreProvider({ initial, persist, children }: {
             : []
           d.activities.push({
             id: uid('act'), childId, date, kind: 'sleep', time: start, endTime: end,
-            checks, note: '', createdAt: new Date().toISOString(),
+            roomTemp, checks, note: '', createdAt: new Date().toISOString(),
           })
           return d
         })

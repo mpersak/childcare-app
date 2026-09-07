@@ -4,7 +4,8 @@ import { useVault } from '../lib/vault'
 import { ActionButton, Card, Field, PageHead } from '../components/ui'
 import { scheduleFor } from '../lib/billing'
 import { openDraft, trimBody } from '../lib/email'
-import { download, toCSV } from '../lib/exporters'
+import { toCSV } from '../lib/exporters'
+import { printNode, shareOrDownload } from '../lib/printing'
 import {
   addDays, formatDate, fromISODate, startOfWeek, today, weekOptions,
   WEEKDAYS_SHORT, WORKING_DAYS_PER_WEEK,
@@ -122,7 +123,7 @@ export default function SignSheet() {
   }
 
   const exportCsv = () => {
-    download(
+    void shareOrDownload(
       `sign-in-sheet-${weekStart}.csv`,
       toCSV([
         ['Date', 'No', 'Name', 'Mkd', 'Booked From', 'Time Arrived', 'Booked To', 'Time Collected', 'Status'],
@@ -175,7 +176,8 @@ export default function SignSheet() {
             }}
           />
           <span className="spacer" />
-          <ActionButton icon="🖨" label="Print / save PDF" onClick={() => window.print()} />
+          <ActionButton icon="🖨" label="Print / save PDF"
+                        onClick={() => printNode('.sheet', `Sign in sheet ${range}`)} />
           <ActionButton icon="⬇" label="CSV" onClick={exportCsv} />
           <ActionButton icon="✉" label="Email to coordinator" primary disabled={missingEmail} onClick={emailSheet} />
         </div>
