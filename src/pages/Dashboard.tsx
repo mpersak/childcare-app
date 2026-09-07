@@ -123,57 +123,59 @@ export default function Dashboard() {
           {rows.length === 0 ? (
             <p className="muted">No active children.</p>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Child</th><th>Booked</th><th>In</th><th>Out</th>
-                  <th className="num">Hours</th><th className="num">Today</th><th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(({ child, blocks, record, billing, liveMinutes }) => {
-                  const onNow = !!record?.checkIn && !record?.checkOut && record.status === 'present'
-                  return (
-                    <tr key={child.id} className={onNow ? 'row-live' : undefined}>
-                      <td>
-                        <Link className="child-cell" to={`/children/${child.id}`}>
-                          <Avatar child={child} size={26} />
-                          {childName(child)}
-                        </Link>
-                      </td>
-                      <td className="muted">
-                        {blocks.length
-                          ? `${blocks[0].start}–${blocks[blocks.length - 1].end}`
-                          : '—'}
-                      </td>
-                      <td>{record?.checkIn ?? '—'}</td>
-                      <td>{record?.checkOut ?? '—'}</td>
-                      <td className="num">
-                        {onNow
-                          ? <span className="live">{minutesToTime(liveMinutes)} so far</span>
-                          : billing && billing.billedHours > 0 ? formatHours(billing.billedHours) : '—'}
-                      </td>
-                      <td className="num">{billing && billing.amount > 0 ? formatMoney(billing.amount, currency, locale) : '—'}</td>
-                      <td className="right">
-                        {record?.status && record.status !== 'present' ? (
-                          <Badge tone="muted">{record.status}</Badge>
-                        ) : !record?.checkIn ? (
-                          <button className="btn small primary" onClick={() => actions.checkIn(child.id)}>
-                            Check in
-                          </button>
-                        ) : !record.checkOut ? (
-                          <button className="btn small" onClick={() => actions.checkOut(child.id)}>
-                            Check out
-                          </button>
-                        ) : (
-                          <Badge tone="good">Done</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <div className="table-scroll">
+  <table className="table">
+                <thead>
+                  <tr>
+                    <th>Child</th><th>Booked</th><th>In</th><th>Out</th>
+                    <th className="num">Hours</th><th className="num">Today</th><th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(({ child, blocks, record, billing, liveMinutes }) => {
+                    const onNow = !!record?.checkIn && !record?.checkOut && record.status === 'present'
+                    return (
+                      <tr key={child.id} className={onNow ? 'row-live' : undefined}>
+                        <td>
+                          <Link className="child-cell" to={`/children/${child.id}`}>
+                            <Avatar child={child} size={26} />
+                            {childName(child)}
+                          </Link>
+                        </td>
+                        <td className="muted">
+                          {blocks.length
+                            ? `${blocks[0].start}–${blocks[blocks.length - 1].end}`
+                            : '—'}
+                        </td>
+                        <td>{record?.checkIn ?? '—'}</td>
+                        <td>{record?.checkOut ?? '—'}</td>
+                        <td className="num">
+                          {onNow
+                            ? <span className="live">{minutesToTime(liveMinutes)} so far</span>
+                            : billing && billing.billedHours > 0 ? formatHours(billing.billedHours) : '—'}
+                        </td>
+                        <td className="num">{billing && billing.amount > 0 ? formatMoney(billing.amount, currency, locale) : '—'}</td>
+                        <td className="right">
+                          {record?.status && record.status !== 'present' ? (
+                            <Badge tone="muted">{record.status}</Badge>
+                          ) : !record?.checkIn ? (
+                            <button className="btn small primary" onClick={() => actions.checkIn(child.id)}>
+                              Check in
+                            </button>
+                          ) : !record.checkOut ? (
+                            <button className="btn small" onClick={() => actions.checkOut(child.id)}>
+                              Check out
+                            </button>
+                          ) : (
+                            <Badge tone="good">Done</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
 

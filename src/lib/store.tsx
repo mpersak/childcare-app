@@ -42,6 +42,14 @@ interface Actions {
   setSleepCheck(activityId: string, at: string, done: boolean, by: string): void
   deleteActivity(id: string): void
 
+  /** Logs anything else — medicine, a meal, sunscreen — with a typed label. */
+  addOther(childId: string, label: string, date?: ISODate, time?: string): void
+  /**
+   * Re-reads the booked times from the current schedule onto recorded days in a
+   * range. Invoiced days are left alone.
+   */
+  resyncBookings(from: ISODate, to: ISODate): void
+
   addNote(input: Omit<KidNote, 'id' | 'createdAt'>): void
   updateNote(id: string, patch: Partial<KidNote>): void
   deleteNote(id: string): void
@@ -88,6 +96,8 @@ export function StoreProvider({ initial, persist, children }: {
           // An invoiced record is locked; editing it would silently desync the invoice.
           if (d.attendance[i].invoiceId) return d
           const merged = { ...d.attendance[i], ...input }
+          // A signature or a hand edit means the times are real now.
+          if ('checkIn' in input || 'checkOut' in input) merged.timesFromBooking = false
           // Declaring a holiday stamps the day it was declared, which is what
           // decides whether enough notice was given to earn the discount.
           if (merged.status === 'holiday' && !merged.noticeDate) merged.noticeDate = today()
@@ -207,6 +217,7 @@ export function StoreProvider({ initial, persist, children }: {
               rate: rateForChild(child, d.settings),
               bookedFrom: blocks[0].start,
               bookedTo: blocks[blocks.length - 1].end,
+              timesFromBooking: !closed,
               note: closed ? closed.name : '',
               invoiceId: null,
               createdAt: new Date().toISOString(),
@@ -260,6 +271,30 @@ export function StoreProvider({ initial, persist, children }: {
       },
       deleteActivity(id) {
         mutate(d => { d.activities = d.activities.filter(a => a.id !== id); return d })
+      },
+
+      addOther(childId, label, date = today(), time = nowTime()) {
+        if (!label.trim()) return
+        mutate(d => {
+          d.activities.push({
+            id: uid('act'), childId, date, kind: 'other', time,
+            label: label.trim(), note: '', createdAt: new Date().toISOString(),
+          })
+          return d
+        })
+      },
+      resyncBookings(from, to) {
+        mutate(d => {
+          for (const rec of d.attendance) {
+            if (rec.date < from || rec.date > to) continue
+            if (rec.invoiceId) continue
+            const blocks = scheduleFor(d.schedules, rec.childId, rec.date)
+            if (!blocks.length) continue
+            rec.bookedFrom = blocks[0].start
+            rec.bookedTo = blocks[blocks.length - 1].end
+          }
+          return d
+        })
       },
 
       addNote(input) {

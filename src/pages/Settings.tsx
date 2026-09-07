@@ -169,20 +169,22 @@ export default function SettingsPage() {
               instead of present.
             </p>
           ) : (
-            <table className="table">
-              <tbody>
-                {[...db.closures].sort((a, b) => a.date.localeCompare(b.date)).map(c => (
-                  <tr key={c.id}>
-                    <td>{formatDate(c.date, s.locale)}</td>
-                    <td>{c.name}</td>
-                    <td className="muted">{c.billable ? 'charged' : 'not charged'}</td>
-                    <td className="right">
-                      <button className="link danger" onClick={() => actions.deleteClosure(c.id)}>remove</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="table-scroll">
+  <table className="table">
+                <tbody>
+                  {[...db.closures].sort((a, b) => a.date.localeCompare(b.date)).map(c => (
+                    <tr key={c.id}>
+                      <td>{formatDate(c.date, s.locale)}</td>
+                      <td>{c.name}</td>
+                      <td className="muted">{c.billable ? 'charged' : 'not charged'}</td>
+                      <td className="right">
+                        <button className="link danger" onClick={() => actions.deleteClosure(c.id)}>remove</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       </div>

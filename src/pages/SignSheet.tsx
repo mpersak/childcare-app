@@ -29,12 +29,13 @@ interface SheetRow {
  * one numbered row per child per day, booked times against actual times.
  */
 export default function SignSheet() {
-  const { db } = useStore()
+  const { db, actions } = useStore()
   const vault = useVault()
   const s = db.settings
   const [weekStart, setWeekStart] = useState(() => startOfWeek(today()))
   const [blank, setBlank] = useState(false)
   const [sigs, setSigs] = useState<Record<string, string>>({})
+  const [refreshed, setRefreshed] = useState('')
 
   const days = useMemo(
     () => Array.from({ length: WORKING_DAYS_PER_WEEK }, (_, i) => addDays(weekStart, i)),
@@ -72,11 +73,13 @@ export default function SignSheet() {
           // snapshot, so those fall back to the schedule as it stands.
           bookedFrom: rec?.bookedFrom ?? blocks[0]?.start ?? '',
           bookedTo: rec?.bookedTo ?? blocks[blocks.length - 1]?.end ?? '',
-          // Prefer the time a guardian actually signed. Auto check-in fills
-          // checkIn/checkOut from the booking, which is right for billing but
-          // would misreport arrival on a sheet the coordinator reads.
-          arrived: blank ? '' : (rec?.status === 'present' ? rec.signIn?.time ?? rec.checkIn ?? '' : ''),
-          collected: blank ? '' : (rec?.status === 'present' ? rec.signOut?.time ?? rec.checkOut ?? '' : ''),
+          // The recorded times, whether they came from a signature or a hand
+          // edit — both are real. Left blank while they still hold what auto
+          // check-in copied from the booking, which is not an arrival.
+          arrived: blank || rec?.status !== 'present' || rec.timesFromBooking
+            ? '' : rec.checkIn ?? '',
+          collected: blank || rec?.status !== 'present' || rec.timesFromBooking
+            ? '' : rec.checkOut ?? '',
           status: rec && rec.status !== 'present' ? rec.status : '',
           signInRef: blank ? undefined : rec?.signIn?.ref,
           signOutRef: blank ? undefined : rec?.signOut?.ref,
@@ -162,11 +165,21 @@ export default function SignSheet() {
             <input type="checkbox" checked={blank} onChange={e => setBlank(e.target.checked)} />
             Blank sheet for hand signing
           </label>
+          <ActionButton
+            icon="↻" label="Refresh from schedule"
+            title="Re-read the booked times for this week from the current schedule"
+            onClick={() => {
+              actions.resyncBookings(weekStart, weekEnd)
+              setRefreshed(`Booked times re-read from the schedule for ${range}.`)
+              setTimeout(() => setRefreshed(''), 6000)
+            }}
+          />
           <span className="spacer" />
           <ActionButton icon="🖨" label="Print / save PDF" onClick={() => window.print()} />
           <ActionButton icon="⬇" label="CSV" onClick={exportCsv} />
           <ActionButton icon="✉" label="Email to coordinator" primary disabled={missingEmail} onClick={emailSheet} />
         </div>
+        {refreshed && <p className="notice">{refreshed}</p>}
         {missingEmail && (
           <p className="muted small">
             Set the coordinator's email address in Settings before emailing.

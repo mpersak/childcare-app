@@ -81,6 +81,13 @@ export interface AttendanceRecord {
    */
   bookedFrom?: string
   bookedTo?: string
+  /**
+   * True while checkIn/checkOut still hold the booked times auto check-in put
+   * there, rather than a real arrival. Cleared the moment anyone signs or edits
+   * a time, which is what lets the sign-in sheet leave the cell blank until
+   * there is something genuine to report.
+   */
+  timesFromBooking?: boolean
   note: string
   /** Set once the record has been pulled onto an invoice; blocks double billing. */
   invoiceId: string | null
@@ -106,12 +113,14 @@ export interface Activity {
   id: string
   childId: string
   date: ISODate
-  kind: 'nappy' | 'sleep'
+  kind: 'nappy' | 'sleep' | 'other'
   /** Start time, 24h HH:MM. */
   time: string
   /** Sleep only. */
   endTime?: string
   nappy?: NappyKind
+  /** For an 'other' entry: what it was, e.g. "Medicine — 5ml paracetamol". */
+  label?: string
   checks?: SleepCheck[]
   note: string
   createdAt: ISOTimestamp

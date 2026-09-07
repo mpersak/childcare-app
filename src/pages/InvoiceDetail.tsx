@@ -102,63 +102,65 @@ export default function InvoiceDetail() {
             <div className="muted small">Care for {childName(child)}</div>
           </section>
 
-          <table className="table inv-lines">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th className="num">Hours</th>
-                <th className="num">Rate</th>
-                <th className="num">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inv.lines.map(l => (
-                <tr key={l.id}>
-                  <td>{l.description}</td>
-                  <td className="num">{l.hours > 0 ? formatHours(l.hours) : '—'}</td>
-                  <td className="num">{l.rate > 0 ? formatMoney(l.rate, currency, locale) : '—'}</td>
-                  <td className="num">{formatMoney(l.amount, currency, locale)}</td>
-                </tr>
-              ))}
-              {inv.adjustments.map(a => (
-                <tr key={a.id}>
-                  <td>{a.description || 'Adjustment'}</td>
-                  <td className="num">—</td><td className="num">—</td>
-                  <td className="num">{formatMoney(a.amount, currency, locale)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={3} className="right">Subtotal</td>
-                <td className="num">{formatMoney(inv.subtotal, currency, locale)}</td>
-              </tr>
-              {taxEnabled && (
+          <div className="table-scroll">
+  <table className="table inv-lines">
+              <thead>
                 <tr>
-                  <td colSpan={3} className="right">
-                    {taxName} at {(db.settings.taxRate * 100).toFixed(0)}%
-                  </td>
-                  <td className="num">{formatMoney(inv.tax, currency, locale)}</td>
+                  <th>Description</th>
+                  <th className="num">Hours</th>
+                  <th className="num">Rate</th>
+                  <th className="num">Amount</th>
                 </tr>
-              )}
-              <tr className="total-row">
-                <td colSpan={3} className="right">Total</td>
-                <td className="num">{formatMoney(inv.total, currency, locale)}</td>
-              </tr>
-              {paid > 0 && (
-                <>
+              </thead>
+              <tbody>
+                {inv.lines.map(l => (
+                  <tr key={l.id}>
+                    <td>{l.description}</td>
+                    <td className="num">{l.hours > 0 ? formatHours(l.hours) : '—'}</td>
+                    <td className="num">{l.rate > 0 ? formatMoney(l.rate, currency, locale) : '—'}</td>
+                    <td className="num">{formatMoney(l.amount, currency, locale)}</td>
+                  </tr>
+                ))}
+                {inv.adjustments.map(a => (
+                  <tr key={a.id}>
+                    <td>{a.description || 'Adjustment'}</td>
+                    <td className="num">—</td><td className="num">—</td>
+                    <td className="num">{formatMoney(a.amount, currency, locale)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={3} className="right">Subtotal</td>
+                  <td className="num">{formatMoney(inv.subtotal, currency, locale)}</td>
+                </tr>
+                {taxEnabled && (
                   <tr>
-                    <td colSpan={3} className="right">Paid</td>
-                    <td className="num">−{formatMoney(paid, currency, locale)}</td>
+                    <td colSpan={3} className="right">
+                      {taxName} at {(db.settings.taxRate * 100).toFixed(0)}%
+                    </td>
+                    <td className="num">{formatMoney(inv.tax, currency, locale)}</td>
                   </tr>
-                  <tr className="total-row">
-                    <td colSpan={3} className="right">Balance due</td>
-                    <td className="num">{formatMoney(due, currency, locale)}</td>
-                  </tr>
-                </>
-              )}
-            </tfoot>
-          </table>
+                )}
+                <tr className="total-row">
+                  <td colSpan={3} className="right">Total</td>
+                  <td className="num">{formatMoney(inv.total, currency, locale)}</td>
+                </tr>
+                {paid > 0 && (
+                  <>
+                    <tr>
+                      <td colSpan={3} className="right">Paid</td>
+                      <td className="num">−{formatMoney(paid, currency, locale)}</td>
+                    </tr>
+                    <tr className="total-row">
+                      <td colSpan={3} className="right">Balance due</td>
+                      <td className="num">{formatMoney(due, currency, locale)}</td>
+                    </tr>
+                  </>
+                )}
+              </tfoot>
+            </table>
+          </div>
 
           <footer className="inv-foot">
             {db.settings.bankAccount && (
@@ -229,22 +231,24 @@ export default function InvoiceDetail() {
 
           <Card title="Payments">
             {inv.payments.length > 0 && (
-              <table className="table">
-                <tbody>
-                  {inv.payments.map(p => (
-                    <tr key={p.id}>
-                      <td>{formatDate(p.date, locale)}</td>
-                      <td className="muted">{p.method}{p.reference ? ` · ${p.reference}` : ''}</td>
-                      <td className="num">{formatMoney(p.amount, currency, locale)}</td>
-                      <td className="right">
-                        <button className="link danger" onClick={() => actions.removePayment(inv.id, p.id)}>
-                          remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="table-scroll">
+  <table className="table">
+                  <tbody>
+                    {inv.payments.map(p => (
+                      <tr key={p.id}>
+                        <td>{formatDate(p.date, locale)}</td>
+                        <td className="muted">{p.method}{p.reference ? ` · ${p.reference}` : ''}</td>
+                        <td className="num">{formatMoney(p.amount, currency, locale)}</td>
+                        <td className="right">
+                          <button className="link danger" onClick={() => actions.removePayment(inv.id, p.id)}>
+                            remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
             <div className="form-grid">
               <Field label="Amount">

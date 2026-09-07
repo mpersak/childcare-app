@@ -91,21 +91,23 @@ export default function Finance() {
         <MonthlyRevenueChart points={fin.months} currency={currency} locale={locale} />
         <details className="table-toggle">
           <summary>Show as a table</summary>
-          <table className="table">
-            <thead>
-              <tr><th>Month</th><th className="num">Invoiced</th><th className="num">Received</th><th className="num">Hours</th></tr>
-            </thead>
-            <tbody>
-              {[...fin.months].reverse().map(m => (
-                <tr key={m.key}>
-                  <td>{m.key}</td>
-                  <td className="num">{formatMoney(m.revenue, currency, locale)}</td>
-                  <td className="num">{formatMoney(m.collected, currency, locale)}</td>
-                  <td className="num">{m.hours ? formatHours(m.hours) : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-scroll">
+  <table className="table">
+              <thead>
+                <tr><th>Month</th><th className="num">Invoiced</th><th className="num">Received</th><th className="num">Hours</th></tr>
+              </thead>
+              <tbody>
+                {[...fin.months].reverse().map(m => (
+                  <tr key={m.key}>
+                    <td>{m.key}</td>
+                    <td className="num">{formatMoney(m.revenue, currency, locale)}</td>
+                    <td className="num">{formatMoney(m.collected, currency, locale)}</td>
+                    <td className="num">{m.hours ? formatHours(m.hours) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </details>
       </Card>
 
@@ -122,21 +124,23 @@ export default function Finance() {
             ]}
           />
           {chasing.length > 0 && (
-            <table className="table compact">
-              <thead>
-                <tr><th>Invoice</th><th>Child</th><th>Due</th><th className="num">Owing</th></tr>
-              </thead>
-              <tbody>
-                {chasing.map(inv => (
-                  <tr key={inv.id} className={isOverdue(inv) ? 'row-bad' : undefined}>
-                    <td><Link to={`/invoices/${inv.id}`}>{inv.number}</Link></td>
-                    <td>{childName(db.children.find(c => c.id === inv.childId))}</td>
-                    <td className="muted">{formatDate(inv.dueDate, locale)}</td>
-                    <td className="num">{formatMoney(amountDue(inv), currency, locale)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="table-scroll">
+  <table className="table compact">
+                <thead>
+                  <tr><th>Invoice</th><th>Child</th><th>Due</th><th className="num">Owing</th></tr>
+                </thead>
+                <tbody>
+                  {chasing.map(inv => (
+                    <tr key={inv.id} className={isOverdue(inv) ? 'row-bad' : undefined}>
+                      <td><Link to={`/invoices/${inv.id}`}>{inv.number}</Link></td>
+                      <td>{childName(db.children.find(c => c.id === inv.childId))}</td>
+                      <td className="muted">{formatDate(inv.dueDate, locale)}</td>
+                      <td className="num">{formatMoney(amountDue(inv), currency, locale)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
 

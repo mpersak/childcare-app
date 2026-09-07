@@ -90,52 +90,54 @@ export default function ActivityReport() {
 
       <Card title="Summary">
         {byChild.length === 0 ? <p className="muted">Nothing logged in this period.</p> : (
-          <table className="table">
-            <thead>
-              <tr><th>Child</th><th className="num">Nappies</th><th className="num">Sleep</th>
-                  <th className="num">Sleep checks recorded</th></tr>
-            </thead>
-            <tbody>
-              {byChild.map(([id, v]) => (
-                <tr key={id}>
-                  <td>{childName(db.children.find(c => c.id === id))}</td>
-                  <td className="num">{v.nappies}</td>
-                  <td className="num">{Math.floor(v.sleepMinutes / 60)}h {v.sleepMinutes % 60}m</td>
-                  <td className="num">
-                    {v.checksTotal ? `${v.checksDone} / ${v.checksTotal}` : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-scroll">
+  <table className="table">
+              <thead>
+                <tr><th>Child</th><th className="num">Nappies</th><th className="num">Sleep</th>
+                    <th className="num">Sleep checks recorded</th></tr>
+              </thead>
+              <tbody>
+                {byChild.map(([id, v]) => (
+                  <tr key={id}>
+                    <td>{childName(db.children.find(c => c.id === id))}</td>
+                    <td className="num">{v.nappies}</td>
+                    <td className="num">{Math.floor(v.sleepMinutes / 60)}h {v.sleepMinutes % 60}m</td>
+                    <td className="num">
+                      {v.checksTotal ? `${v.checksDone} / ${v.checksTotal}` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 
       <Card title={`Full log (${rows.length})`}>
         {rows.length === 0 ? <p className="muted">Nothing to show.</p> : (
           <div className="table-scroll">
-            <table className="table">
-              <thead>
-                <tr><th>Date</th><th>Time</th><th>Child</th><th>What</th><th>Detail</th></tr>
-              </thead>
-              <tbody>
-                {rows.map(a => (
-                  <tr key={a.id}>
-                    <td>{formatDate(a.date, s.locale)}</td>
-                    <td>{a.time}{a.endTime ? `–${a.endTime}` : ''}</td>
-                    <td>{childName(db.children.find(c => c.id === a.childId))}</td>
-                    <td>{a.kind === 'nappy' ? 'Nappy' : 'Sleep'}</td>
-                    <td>
-                      {a.kind === 'nappy'
-                        ? a.nappy
-                        : a.checks?.length
-                          ? `${a.checks.filter(c => c.done).length}/${a.checks.length} checks recorded`
-                          : 'no checks generated'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+  <table className="table">
+                <thead>
+                  <tr><th>Date</th><th>Time</th><th>Child</th><th>What</th><th>Detail</th></tr>
+                </thead>
+                <tbody>
+                  {rows.map(a => (
+                    <tr key={a.id}>
+                      <td>{formatDate(a.date, s.locale)}</td>
+                      <td>{a.time}{a.endTime ? `–${a.endTime}` : ''}</td>
+                      <td>{childName(db.children.find(c => c.id === a.childId))}</td>
+                      <td>{a.kind === 'nappy' ? 'Nappy' : a.kind === 'sleep' ? 'Sleep' : 'Other'}</td>
+                      <td>
+                        {a.kind === 'nappy'
+                          ? a.nappy
+                          : a.checks?.length
+                            ? `${a.checks.filter(c => c.done).length}/${a.checks.length} checks recorded`
+                            : 'no checks generated'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
           </div>
         )}
       </Card>

@@ -197,7 +197,7 @@ export function schedulesCSV(db: Database): string {
 
 export function activitiesCSV(db: Database, from?: string, to?: string): string {
   const rows: unknown[][] = [[
-    'Date', 'Time', 'End', 'Child', 'Type', 'Nappy', 'Sleep checks done', 'Sleep checks total', 'Note',
+    'Date', 'Time', 'End', 'Child', 'Type', 'Detail', 'Sleep checks done', 'Sleep checks total', 'Note',
   ]]
   const list = db.activities
     .filter(a => (!from || a.date >= from) && (!to || a.date <= to))
@@ -207,7 +207,7 @@ export function activitiesCSV(db: Database, from?: string, to?: string): string 
     rows.push([
       a.date, a.time, a.endTime ?? '',
       childName(db.children.find(c => c.id === a.childId)),
-      a.kind, a.nappy ?? '',
+      a.kind, a.nappy ?? a.label ?? '',
       a.checks ? a.checks.filter(c => c.done).length : '',
       a.checks ? a.checks.length : '',
       a.note,

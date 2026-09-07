@@ -57,6 +57,15 @@ function ChildActivities({ childId, date }: { childId: string; date: string }) {
   const child = db.children.find(c => c.id === childId)
   const [sleepStart, setSleepStart] = useState(nowTime())
   const [sleepMinutes, setSleepMinutes] = useState(db.settings.sleepBlockMinutes)
+  const [other, setOther] = useState('')
+  const [otherTime, setOtherTime] = useState(nowTime())
+
+  const addOther = () => {
+    if (!other.trim()) return
+    actions.addOther(childId, other, date, otherTime)
+    setOther('')
+    setOtherTime(nowTime())
+  }
 
   const entries = useMemo(
     () => db.activities
@@ -66,6 +75,7 @@ function ChildActivities({ childId, date }: { childId: string; date: string }) {
   )
 
   const nappies = entries.filter(a => a.kind === 'nappy')
+  const others = entries.filter(a => a.kind === 'other')
   const sleeps = entries.filter(a => a.kind === 'sleep')
   const totalSleep = sleeps.reduce((s, a) => {
     const from = timeToMinutes(a.time), to = timeToMinutes(a.endTime ?? '')
@@ -83,6 +93,7 @@ function ChildActivities({ childId, date }: { childId: string; date: string }) {
       actions={
         <span className="muted small">
           {nappies.length} nappies · {totalSleep > 0 ? `${Math.floor(totalSleep / 60)}h ${totalSleep % 60}m` : 'no'} sleep
+          {others.length > 0 && ` · ${others.length} other`}
         </span>
       }
     >
@@ -94,6 +105,26 @@ function ChildActivities({ childId, date }: { childId: string; date: string }) {
             {n.label}
           </button>
         ))}
+      </div>
+
+      {/* Medicine, sunscreen, a meal — anything worth a timestamped line. */}
+      <div className="other-add">
+        <label className="field other-what">
+          <span className="field-label">Something else</span>
+          <input
+            className="input"
+            placeholder="Medicine, sunscreen, meal…"
+            value={other}
+            onChange={e => setOther(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') addOther() }}
+          />
+        </label>
+        <label className="field">
+          <span className="field-label">At</span>
+          <input className="input tight" type="time" value={otherTime}
+                 onChange={e => setOtherTime(e.target.value)} />
+        </label>
+        <button className="btn" disabled={!other.trim()} onClick={addOther}>Log it</button>
       </div>
 
       <div className="sleep-add">
@@ -137,6 +168,17 @@ function ChildActivities({ childId, date }: { childId: string; date: string }) {
 function ActivityRow({ activity }: { activity: Activity }) {
   const { db, actions } = useStore()
   const [open, setOpen] = useState(false)
+
+  if (activity.kind === 'other') {
+    return (
+      <li className="act-row">
+        <span className="act-time">{activity.time}</span>
+        <span className="act-icon">💊</span>
+        <span>{activity.label}</span>
+        <button className="link danger" onClick={() => actions.deleteActivity(activity.id)}>remove</button>
+      </li>
+    )
+  }
 
   if (activity.kind === 'nappy') {
     const meta = NAPPIES.find(n => n.kind === activity.nappy)

@@ -312,33 +312,35 @@ function AttendanceTab({ childId }: { childId: string }) {
       {rows.length === 0 ? (
         <p className="muted">Nothing recorded this month.</p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr><th>Date</th><th>Status</th><th>In</th><th>Out</th>
-                <th className="num">Hours</th><th className="num">Charge</th><th>Invoice</th></tr>
-          </thead>
-          <tbody>
-            {rows.map(({ r, b, inv }) => (
-              <tr key={r.id}>
-                <td><Link to={`/attendance?date=${r.date}`}>{formatDate(r.date, locale)}</Link></td>
-                <td><Badge tone={r.status === 'present' ? 'good' : 'muted'}>{r.status}</Badge></td>
-                <td>{r.checkIn ?? '—'}</td>
-                <td>{r.checkOut ?? '—'}</td>
-                <td className="num">{b.billedHours > 0 ? formatHours(b.billedHours) : '—'}</td>
-                <td className="num">{b.amount > 0 ? formatMoney(b.amount, currency, locale) : '—'}</td>
-                <td>{inv ? <Link to={`/invoices/${inv.id}`}>{inv.number}</Link> : <span className="muted">not billed</span>}</td>
+        <div className="table-scroll">
+  <table className="table">
+            <thead>
+              <tr><th>Date</th><th>Status</th><th>In</th><th>Out</th>
+                  <th className="num">Hours</th><th className="num">Charge</th><th>Invoice</th></tr>
+            </thead>
+            <tbody>
+              {rows.map(({ r, b, inv }) => (
+                <tr key={r.id}>
+                  <td><Link to={`/attendance?date=${r.date}`}>{formatDate(r.date, locale)}</Link></td>
+                  <td><Badge tone={r.status === 'present' ? 'good' : 'muted'}>{r.status}</Badge></td>
+                  <td>{r.checkIn ?? '—'}</td>
+                  <td>{r.checkOut ?? '—'}</td>
+                  <td className="num">{b.billedHours > 0 ? formatHours(b.billedHours) : '—'}</td>
+                  <td className="num">{b.amount > 0 ? formatMoney(b.amount, currency, locale) : '—'}</td>
+                  <td>{inv ? <Link to={`/invoices/${inv.id}`}>{inv.number}</Link> : <span className="muted">not billed</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={4} className="right"><strong>Month</strong></td>
+                <td className="num"><strong>{formatHours(hours)}</strong></td>
+                <td className="num"><strong>{formatMoney(value, currency, locale)}</strong></td>
+                <td />
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={4} className="right"><strong>Month</strong></td>
-              <td className="num"><strong>{formatHours(hours)}</strong></td>
-              <td className="num"><strong>{formatMoney(value, currency, locale)}</strong></td>
-              <td />
-            </tr>
-          </tfoot>
-        </table>
+            </tfoot>
+          </table>
+        </div>
       )}
     </Card>
   )
@@ -435,26 +437,28 @@ function InvoicesTab({ childId }: { childId: string }) {
     <div className="split">
       <Card title="Invoices">
         {invoices.length === 0 ? <p className="muted">No invoices yet.</p> : (
-          <table className="table">
-            <thead>
-              <tr><th>Number</th><th>Period</th><th className="num">Total</th>
-                  <th className="num">Due</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {invoices.map(inv => {
-                const s = statusLabel(inv)
-                return (
-                  <tr key={inv.id}>
-                    <td><Link to={`/invoices/${inv.id}`}>{inv.number}</Link></td>
-                    <td className="muted">{formatDate(inv.periodStart, locale)} – {formatDate(inv.periodEnd, locale)}</td>
-                    <td className="num">{formatMoney(inv.total, currency, locale)}</td>
-                    <td className="num">{formatMoney(amountDue(inv), currency, locale)}</td>
-                    <td><Badge tone={s.tone as 'good'}>{s.text}</Badge></td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <div className="table-scroll">
+  <table className="table">
+              <thead>
+                <tr><th>Number</th><th>Period</th><th className="num">Total</th>
+                    <th className="num">Due</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {invoices.map(inv => {
+                  const s = statusLabel(inv)
+                  return (
+                    <tr key={inv.id}>
+                      <td><Link to={`/invoices/${inv.id}`}>{inv.number}</Link></td>
+                      <td className="muted">{formatDate(inv.periodStart, locale)} – {formatDate(inv.periodEnd, locale)}</td>
+                      <td className="num">{formatMoney(inv.total, currency, locale)}</td>
+                      <td className="num">{formatMoney(amountDue(inv), currency, locale)}</td>
+                      <td><Badge tone={s.tone as 'good'}>{s.text}</Badge></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 
